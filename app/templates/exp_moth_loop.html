@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+<head>
+    <title> Moth Study </title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script> 
+  <script src ="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"> </script>
+  <script src="static/js/lib/jsPsych/jspsych.js"></script>
+  <script src="static/js/lib/jsPsych/plugins/jspsych-text.js"></script>
+  <script src="static/js/lib/jsPsych/plugins/jspsych-instructions.js"></script>
+  <script src="static/js/lib/jsPsych/plugins/jspsych-video.js"></script>
+  <script src="static/js/lib/jsPsych/plugins/jspsych-html.js"></script>
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script src="static/js/lib/rating_wheel/Final/ratingwheel.js"></script>
+  <script src="static/js/lib/jsPsych/plugins/plugin-rating_wheel.js"></script>
+
+  <link href="static/js/lib/jsPsych/css/jspsych.css" rel="stylesheet"></link>
+</head>
+<body>
+  <div id="jspsych-target"></div>
+  <div id="rating_wheel"></div>
+</body>
+<script>
+
+
+/*experiment parameters*/
+    //video that is passed in from database
+    //use AJAx get request for getting video element 
+selectedStim='http://clips.vorwaerts-gmbh.de/VfE_html5.mp4';
+
+
+
+//load in video
+/*create list of times to pause*/
+
+//number of stopping points
+// num_stop= 7; 
+// times=[0];
+// //vid_length= selectedStim.duration;
+// vid_length=20;
+// max=vid_length;
+// min=0;
+// var create_times = function(num_stop, max, min){
+//   for (i=0; i<num_stop; i++){
+//     times.push(Math.floor(Math.random()*vid_length));
+//   };
+//   return times;
+// };
+// create_times(num_stop, max, min);
+// stop_times= times.sort(function(a, b){return a-b});
+// console.log(stop_times);
+  
+/* instructions */
+// var instructions = {
+//   type: 'instructions',
+//   pages: ['<p>You are going to watch a video clip. The clip will pause  ' +
+//   'and random times and you will be presented with a rating wheel. '+
+//    ' Please rate your emotions at the time of the rating, '+
+//    'and press the continue button to finish the video clip.</p>'+
+//    '<p>Click the button below to begin.</p>'],
+//   show_clickable_nav: true
+// };
+
+    /* define welcome message block */
+var welcome_block = {
+    type: "text",
+    text: "Welcome to the experiment. Press any key to begin."
+  };
+
+  var instructions_block = {
+    type: "text",
+    text: "<p>In this experiment, you are going to watch a video clip.</p><p>Click the spacebar to begin.</p>" 
+  };
+
+/* once participant checks in need to randomly generate stop times w/ 0.0 as first, and then sort them*/
+stop_times=[0.0, 2.0, 4.0, 7.0, 10.0];
+
+/*create video objects for each clip using stop times- store objects in list of clips*/
+var vid_objects=[];
+var video_pres;
+for (time = 1; time < stop_times.length; time++) { 
+    video_pres = {
+      type: 'video',
+      sources: [selectedStim],
+      start: stop_times[time-1],
+      stop:stop_times[time]
+    };
+    vid_objects.push(video_pres);
+};
+
+/*end message*/
+var end_msg= {
+    type: "text",
+    text: "Thank you for participating! "
+  };
+
+var wheel_objects=[];
+var wheel_obj;
+for (piece=1; piece<stop_times.length; piece++){
+    wheelobj={
+      type:'rating-wheel',
+      // timing_response: 1500,
+      choices: [32], // space ends trial
+      // response_ends_trial: true
+    };
+    wheel_objects.push(wheelobj);
+};
+
+// record the condition assignment in the jsPsych data
+// this adds a property called 'subject' and a property called 'condition' to every trial
+ jsPsych.data.addProperties({
+  stop_times: stop_times,
+  stimuli: selectedStim
+});
+
+/* create timeline and push objects to timeline*/
+var timeline = [];
+  timeline.push(welcome_block);
+  timeline.push(instructions_block);
+
+  /* loop over video and keep playing until time ==time on list- then pop up
+  the rating wheel- have them rate, push to continue- store ratings and time to csv, and play from point paused*/
+  for (clip = 0; clip < vid_objects.length; clip++) {
+    timeline.push(vid_objects[clip]);
+    timeline.push(wheel_objects[clip]);
+ };
+    timeline.push(end_msg);
+
+/*run the experiment*/
+jsPsych.init({
+  //display_element: $('#jspsych-target'),
+  //TODO: why doesn't the above actually work?
+  timeline: timeline,
+  on_finish: function() {
+      jsPsych.data.displayData();
+    }
+});
+
+</script>
+</html>
+
