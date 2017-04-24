@@ -118,6 +118,7 @@ jsPsych.plugins.video = (function() {
       display_element.innerHTML += trial.prompt;
     }
 
+
    // display_element.querySelector('#jspsych-video-player').onended = function(){
       //end_trial();
     //}
@@ -129,10 +130,12 @@ jsPsych.plugins.video = (function() {
     var end_trial = function() {
 
       var trial_data = {
-        "stimulus": JSON.stringify(trial.stimulus),
+        //'video': JSON.stringify(trial.stimuli),
         'start_time': trial.start,
         'stop_time': trial.stop
       };
+
+      console.log(trial.sources);
 
       // here we need to create function to save 
       // data parameter should be either the value of jsPsych.data()
@@ -145,13 +148,13 @@ jsPsych.plugins.video = (function() {
             cache: false,
             url: "videotrial", 
             contentType: 'application/json',
-            data: JSON.stringify(trial_data),
+            data: {json_str: JSON.stringify(trial_data)}, //JSON.stringify(trial_data),
             success: function(output) { 
               console.log(output); 
             },
             error: function() {
               console.log('service failed!')
-              } // write the result to javascript console
+              } 
                 });
       }
 

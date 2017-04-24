@@ -19,13 +19,15 @@
   <div id="jspsych-target"></div>
   <div id="rating_wheel"></div>
 </body>
-<script>
+<script type ="text/javascript">
 
+var video_stim = {{ stim_names|safe }};
+console.log(video_stim[0]);
 
 /*experiment parameters*/
     //video that is passed in from database
     //use AJAx get request for getting video element 
-selectedStim='http://clips.vorwaerts-gmbh.de/VfE_html5.mp4';
+//var selectedStim='http://clips.vorwaerts-gmbh.de/VfE_html5.mp4';
 
 
 
@@ -33,22 +35,20 @@ selectedStim='http://clips.vorwaerts-gmbh.de/VfE_html5.mp4';
 /*create list of times to pause*/
 
 //number of stopping points
-// num_stop= 7; 
-// times=[0];
-// //vid_length= selectedStim.duration;
-// vid_length=20;
-// max=vid_length;
-// min=0;
-// var create_times = function(num_stop, max, min){
-//   for (i=0; i<num_stop; i++){
-//     times.push(Math.floor(Math.random()*vid_length));
-//   };
-//   return times;
-// };
-// create_times(num_stop, max, min);
-// stop_times= times.sort(function(a, b){return a-b});
-// console.log(stop_times);
-  
+var num_stop= {{ num_stops|safe }}; 
+console.log(num_stop)
+var times=[0];
+//vid_length= selectedStim.duration;
+var vid_length=400;
+var max=vid_length;
+var min=0;
+
+var create_times = function(num_stop, max, min){
+  for (i=0; i<num_stop; i++){
+    times.push(Math.floor(Math.random()*vid_length));
+  };
+  return times;
+}
 /* instructions */
 // var instructions = {
 //   type: 'instructions',
@@ -64,27 +64,16 @@ selectedStim='http://clips.vorwaerts-gmbh.de/VfE_html5.mp4';
 var welcome_block = {
     type: "text",
     text: "Welcome to the experiment. Press any key to begin."
-  };
+};
 
-  var instructions_block = {
+var instructions_block = {
     type: "text",
     text: "<p>In this experiment, you are going to watch a video clip.</p><p>Click the spacebar to begin.</p>" 
-  };
+};
 
-/* once participant checks in need to randomly generate stop times w/ 0.0 as first, and then sort them*/
-stop_times=[0.0, 2.0, 4.0, 7.0, 10.0];
-
-/*create video objects for each clip using stop times- store objects in list of clips*/
-var vid_objects=[];
-var video_pres;
-for (time = 1; time < stop_times.length; time++) { 
-    video_pres = {
-      type: 'video',
-      sources: [selectedStim],
-      start: stop_times[time-1],
-      stop:stop_times[time]
-    };
-    vid_objects.push(video_pres);
+var in_between_block = {
+    type: "text",
+    text: "<p> Next video will start soon.</p><p>Click the spacebar to begin.</p>" 
 };
 
 /*end message*/
@@ -93,37 +82,67 @@ var end_msg= {
     text: "Thank you for participating! "
   };
 
-var wheel_objects=[];
-var wheel_obj;
-for (piece=1; piece<stop_times.length; piece++){
-    wheelobj={
-      type:'rating-wheel',
-      // timing_response: 1500,
-      choices: [32], // space ends trial
-      // response_ends_trial: true
-    };
-    wheel_objects.push(wheelobj);
-};
+
+/* create timeline and push objects to timeline*/
+var timeline = [];
+timeline.push(welcome_block);
+timeline.push(instructions_block);
+
+//for (var trial = 0; trial < video_stim.length; i++) {
+for (var trial = 0; trial < video_stim.length; trial++) {
+
+  create_times(num_stop, max, min);
+  stop_times= times.sort(function(a, b){return a-b});
+  console.log(stop_times);
+
+  var vid_objects=[];
+  var video_pres;
+  for (time = 1; time < stop_times.length; time++) { 
+      video_pres = {
+        type: 'video',
+        sources: [video_stim[0]],
+        start: stop_times[time-1],
+        stop:stop_times[time]
+      };
+      vid_objects.push(video_pres);
+  };
+
+  var wheel_objects=[];
+  var wheel_obj;
+  for (piece=1; piece<stop_times.length; piece++){
+      wheelobj={
+        type:'rating-wheel',
+        // timing_response: 1500,
+        choices: [32], // space ends trial
+        // response_ends_trial: true
+      };
+      wheel_objects.push(wheelobj);
+  };
+
+  for (clip = 0; clip < vid_objects.length; clip++) {
+    timeline.push(vid_objects[clip]);
+    timeline.push(wheel_objects[clip]);
+  };
+  timeline.push(in_between_block);
+}
+
+
+timeline.push(end_msg);
 
 // record the condition assignment in the jsPsych data
 // this adds a property called 'subject' and a property called 'condition' to every trial
  jsPsych.data.addProperties({
-  stop_times: stop_times,
-  stimuli: selectedStim
+  //stop_times: stop_times,
+  stimuli: 'http://clips.vorwaerts-gmbh.de/VfE_html5.mp4'
 });
 
-/* create timeline and push objects to timeline*/
-var timeline = [];
-  timeline.push(welcome_block);
-  timeline.push(instructions_block);
+
+
 
   /* loop over video and keep playing until time ==time on list- then pop up
   the rating wheel- have them rate, push to continue- store ratings and time to csv, and play from point paused*/
-  for (clip = 0; clip < vid_objects.length; clip++) {
-    timeline.push(vid_objects[clip]);
-    timeline.push(wheel_objects[clip]);
- };
-    timeline.push(end_msg);
+
+    
 
 /*run the experiment*/
 jsPsych.init({
