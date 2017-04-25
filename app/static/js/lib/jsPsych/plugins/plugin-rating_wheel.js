@@ -75,6 +75,7 @@ jsPsych.plugins['rating-wheel'] = (function() {
     
     // function that renders rating wheel
     rating_wheel.render.go(rw_thisWheel);
+
   
     var response = {
       rt: -1,
@@ -108,23 +109,23 @@ jsPsych.plugins['rating-wheel'] = (function() {
       // or the parameter that is passed to the on_data_update callback function for the core library
       // jsPsych.data() contains ALL data
       // the callback function will contain only the most recently written data.
-      function save_data(trial_data){
-         var data_table = "ratings"; // change this for different experiments
-         $.ajax({
-            type:'post',
-            cache: false,
-            url: 'ratings', //"{{url_for('ratings')}}", //his is my API!- 'app/__init__.py' API will give back JSON object fo info you want in/=
-            contentType: 'application/json',
-            data: JSON.stringify(trial_data),
-            success: function(data) { 
-              console.log(data); 
-            },
-            error:  function(data) {
-                console.log('service failed!')
-            }// write the result to javascript console
-                });
-      }
-      save_data(trial_data);
+      // function save_data(trial_data){
+      //     // change this for different experiments
+      //    $.ajax({
+      //       type:'post',
+      //       cache: false,
+      //       url: 'ratings', //"{{url_for('ratings')}}", //his is my API!- 'app/__init__.py' API will give back JSON object fo info you want in/=
+      //       contentType: 'application/json',
+      //       data: JSON.stringify(trial_data),
+      //       success: function(data) { 
+      //         console.log(data); 
+      //       },
+      //       error:  function(data) {
+      //           console.log('service failed!')
+      //       }// write the result to javascript console
+      //           });
+      // }
+      // save_data(trial_data);
       // clear the display
       display_element.innerHTML = '';
 

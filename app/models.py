@@ -1,7 +1,5 @@
 from app import db
 
-
-
 ## note: might need to lower precision on Floats
 # can add backrefs if need be 
 class Users(db.Model):

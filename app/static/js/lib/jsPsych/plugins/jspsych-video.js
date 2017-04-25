@@ -135,8 +135,6 @@ jsPsych.plugins.video = (function() {
         'stop_time': trial.stop
       };
 
-      console.log(trial.sources);
-
       // here we need to create function to save 
       // data parameter should be either the value of jsPsych.data()
       // or the parameter that is passed to the on_data_update callback function for the core library
@@ -146,7 +144,7 @@ jsPsych.plugins.video = (function() {
          $.ajax({
             type:'POST',
             cache: false,
-            url: "videotrial", 
+            url: "", 
             contentType: 'application/json',
             data: {json_str: JSON.stringify(trial_data)}, //JSON.stringify(trial_data),
             success: function(output) { 
@@ -159,6 +157,7 @@ jsPsych.plugins.video = (function() {
       }
 
       save_data(trial_data);
+      
       // clear the display
       display_element.innerHTML = '';
 

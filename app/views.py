@@ -11,13 +11,7 @@ def start_exp():
 	num_stim= app.config['num_stim'] #change this later
 	num_stops= app.config['num_stops']
 	data = [Stimuli.query.get(i+1).__dict__['file_name'] for i in xrange(num_stim)]
-	# for i in xrange(num_stim):
-	# 	data = Stimuli.query.get(i).__dict__['file_name']
-	# select1= Stimuli.query.get(1).__dict__
-	# print select1 #Stimuli.query.filter_by(id='1')
-	# select2 = Stimuli.query.get(2).__dict__ #Stimuli.query.filter_by(id='2')
-	# selected_stim = [select1, select2]
-	#print selected_stim
+
 	return render_template('exp_moth_loop.html', stim_names = json.dumps(data), num_stops= json.dumps(num_stops))
 
 

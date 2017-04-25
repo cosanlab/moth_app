@@ -21,54 +21,62 @@
 </body>
 <script type ="text/javascript">
 
-var video_stim = {{ stim_names|safe }};
-console.log(video_stim[0]);
-
+// video stimuli from database 
+//var video_stim = {{ stim_names|safe }};
+//console.log(video_stim);
+//var video_stim = ["static/stim/Burns_Fameishness.mp4"];
 /*experiment parameters*/
-    //video that is passed in from database
-    //use AJAx get request for getting video element 
-//var selectedStim='http://clips.vorwaerts-gmbh.de/VfE_html5.mp4';
 
+var video_stim=['http://clips.vorwaerts-gmbh.de/VfE_html5.mp4'];
+// var video_stim=['https://www.youtube.com/embed/GZH7sraVrFY?start=10&end=20&autoplay=1&controls=0&fs=0'];
 
-
-//load in video
-/*create list of times to pause*/
-
-//number of stopping points
+//Global variables to determine stopping points
 var num_stop= {{ num_stops|safe }}; 
-console.log(num_stop)
-var times=[0];
-//vid_length= selectedStim.duration;
-var vid_length=400;
+console.log(num_stop);
+var vid_length=60;
 var max=vid_length;
-var min=0;
+var min=2;
 
+// function to create stopping times- returns a list of arrays 
 var create_times = function(num_stop, max, min){
   for (i=0; i<num_stop; i++){
-    times.push(Math.floor(Math.random()*vid_length));
-  };
+    times.push(Math.floor(Math.random()*(max-min+1))+min);
+  }
   return times;
 }
-/* instructions */
-// var instructions = {
-//   type: 'instructions',
-//   pages: ['<p>You are going to watch a video clip. The clip will pause  ' +
-//   'and random times and you will be presented with a rating wheel. '+
-//    ' Please rate your emotions at the time of the rating, '+
-//    'and press the continue button to finish the video clip.</p>'+
-//    '<p>Click the button below to begin.</p>'],
-//   show_clickable_nav: true
-// };
 
-    /* define welcome message block */
+/* define welcome message block */
 var welcome_block = {
     type: "text",
     text: "Welcome to the experiment. Press any key to begin."
 };
 
+// declare the block.
+// var consent = {
+//   type:'html',
+//   url: "consent_page.html",
+//   cont_btn: "start",
+//   check_fn: check_consent
+// };
+
+// var check_consent = function(elem) {
+//   if ($('#consent_checkbox').is(':checked')) {
+//     return true;
+//   }
+//   else {
+//     alert("If you wish to participate, you must check the box next to the statement 'I agree to participate in this study.'");
+//     return false;
+//   }
+//   return false;
+// };
+
 var instructions_block = {
     type: "text",
-    text: "<p>In this experiment, you are going to watch a video clip.</p><p>Click the spacebar to begin.</p>" 
+    text: "<p>You are going to watch a video clip. The clip will pause  " +
+    'and random times and you will be presented with a rating wheel.</p> '+
+    '<p>Please rate your emotions at the time of the rating, '+
+    'and press the spacebar when you are finished to continue watching the video clip.</p>'+
+    '<p>Press any key to begin.</p>' 
 };
 
 var in_between_block = {
@@ -82,67 +90,61 @@ var end_msg= {
     text: "Thank you for participating! "
   };
 
-
 /* create timeline and push objects to timeline*/
 var timeline = [];
 timeline.push(welcome_block);
+// timeline.push(consent);
 timeline.push(instructions_block);
 
-//for (var trial = 0; trial < video_stim.length; i++) {
+//Loop through each video (one trial) and add the wheel obj and video clips for that video
 for (var trial = 0; trial < video_stim.length; trial++) {
 
+  // create stop times for that video 
+  var times=[0];
   create_times(num_stop, max, min);
   stop_times= times.sort(function(a, b){return a-b});
-  console.log(stop_times);
+  console.log("stop times", stop_times);
 
+  // creat video objects and put in list
   var vid_objects=[];
   var video_pres;
   for (time = 1; time < stop_times.length; time++) { 
       video_pres = {
         type: 'video',
-        sources: [video_stim[0]],
-        start: stop_times[time-1],
-        stop:stop_times[time]
+        //sources: [video_stim[0]],
+        sources: [video_stim[trial]],
+        start: 0, //stop_times[time-1],
+        stop: 10 //stop_times[time]
       };
       vid_objects.push(video_pres);
   };
+  console.log("vid_objects", vid_objects);
 
-  var wheel_objects=[];
+  // create wheel objects and push to list
+  var wheel_objects = [];
   var wheel_obj;
-  for (piece=1; piece<stop_times.length; piece++){
-      wheelobj={
+  for (piece = 1; piece < stop_times.length; piece++){
+      wheelobj = {
         type:'rating-wheel',
         // timing_response: 1500,
-        choices: [32], // space ends trial
+        choices: [32], // spacebar ends trial
         // response_ends_trial: true
       };
       wheel_objects.push(wheelobj);
   };
 
+  // add all the video -objects and rating wheel objects for this trial to the timeline
   for (clip = 0; clip < vid_objects.length; clip++) {
     timeline.push(vid_objects[clip]);
     timeline.push(wheel_objects[clip]);
   };
+
+  // add an in_between block between movies
   timeline.push(in_between_block);
 }
-
-
+console.log("timeline", timeline)
+// add final end message to the timeline
 timeline.push(end_msg);
-
-// record the condition assignment in the jsPsych data
-// this adds a property called 'subject' and a property called 'condition' to every trial
- jsPsych.data.addProperties({
-  //stop_times: stop_times,
-  stimuli: 'http://clips.vorwaerts-gmbh.de/VfE_html5.mp4'
-});
-
-
-
-
-  /* loop over video and keep playing until time ==time on list- then pop up
-  the rating wheel- have them rate, push to continue- store ratings and time to csv, and play from point paused*/
-
-    
 
 /*run the experiment*/
 jsPsych.init({
