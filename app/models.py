@@ -37,7 +37,6 @@ class Trials(db.Model):
 	stimuli_id = db.Column(db.Integer, db.ForeignKey('stimuli.id'))
 	start_time = db.Column(db.Float)
 	stop_time = db.Column(db.Float)
-	reaction_time= db.Column(db.Float)
 	def to_json(self):
 		json_post = {
 		'url': url_for('api.get_post', id = self.id, _external=True),
@@ -55,6 +54,8 @@ class Ratings(db.Model):
 	trial_id= db.Column(db.Integer, db.ForeignKey('trials.id'))
 	category = db.Column(db.Integer)
 	intensity = db.Column(db.Integer)
+	selected = db.Column(db.Integer)
+	reaction_time= db.Column(db.Float)
 	def to_json(self):
 		json_post = {
 		'url': url_for('api.get_post', id = self.id, _external=True),

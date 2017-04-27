@@ -82,6 +82,8 @@ jsPsych.plugins['rating-wheel'] = (function() {
       key: -1
     };
 
+    
+
         // end trial if time limit is set
     if (trial.timing_response > 0) {
       jsPsych.pluginAPI.setTimeout(function() {
@@ -91,41 +93,45 @@ jsPsych.plugins['rating-wheel'] = (function() {
     
     // function to end trial when it is time
     var end_trial = function() {
-      //console.log('circles', rw_thisWheel.allPoints.circles);
-      //console.log('circleData', circleData);
-            // kill keyboard listeners
+     
+            
+      console.log("chosen", chosen);
+      
+      // kill keyboard listeners
       if (typeof keyboardListener !== 'undefined') {
         jsPsych.pluginAPI.cancelKeyboardResponse(keyboardListener);
       }
+
       // gather the data to store for the trial
       var trial_data = {
-      "rt": response.rt
-      //'ratings':JSON.stringify(circleData)
-      //'time_submitted': 
+      'rt': response.rt,
+      'ratings': chosen 
       };
+
+      console.log("rating data", trial_data);
 
       // here we need to create function to save 
       // data parameter should be either the value of jsPsych.data()
       // or the parameter that is passed to the on_data_update callback function for the core library
       // jsPsych.data() contains ALL data
       // the callback function will contain only the most recently written data.
-      // function save_data(trial_data){
-      //     // change this for different experiments
-      //    $.ajax({
-      //       type:'post',
-      //       cache: false,
-      //       url: 'ratings', //"{{url_for('ratings')}}", //his is my API!- 'app/__init__.py' API will give back JSON object fo info you want in/=
-      //       contentType: 'application/json',
-      //       data: JSON.stringify(trial_data),
-      //       success: function(data) { 
-      //         console.log(data); 
-      //       },
-      //       error:  function(data) {
-      //           console.log('service failed!')
-      //       }// write the result to javascript console
-      //           });
-      // }
-      // save_data(trial_data);
+      function save_data(trial_data){
+          // change this for different experiments
+         $.ajax({
+            type:'POST',
+            cache: false,
+            url: 'ratings', 
+            contentType: 'application/json',
+            data: JSON.stringify(trial_data),
+            success: function(trial_data) { 
+              console.log(trial_data); 
+            },
+            error:  function(trial_data) {
+                console.log('service failed!')
+            }
+                });
+      }
+      save_data(trial_data);
       // clear the display
       display_element.innerHTML = '';
 

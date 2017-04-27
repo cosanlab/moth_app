@@ -19,39 +19,40 @@ def start_exp():
 def rating_to_db():
 	#ratings= Post.from_json(request.json) 
 	print 'received rating!'
+	print(request.data)
 	content = request.get_json(silent=True)
-	print content;
-	# ratings = JSON.parse(request.json)
-	#ratings = json.loads(request.json)
-	for clicked in ratings:
-		selected = Ratings(category= content[clicked]['cat'], intensity = content[clicked]['intens'], selected= content[clicked]['selected'])
-	#list of objects circle through and add new row for each item in list
-	# for each list add new row, and append the rt that is same for all
-		db.session.add(selected)
-		db.session.commit()
+	print content
+	all_ratings= []
+	for key in content:
+		if key == 'rt':
+			response = content['rt']
+			print response
+		if key == 'ratings':
+			ratings = content['ratings']
+			print ratings 
+			for circleObj in ratings: # for each dictionary in the list
+				if circleObj['selected'] == True:
+					selected =1
+				else:
+					selected = 0
+				circle = Ratings(category= circleObj['cat'], intensity = circleObj['intens'], selected= selected)
+				all_ratings.append(circle)
+	db.session.add_all(all_ratings)
+	db.session.commit()
 	#return
 	return jsonify(post.to_json())
 
 @app.route('/videotrial', methods =['POST'])
 def trials_to_db():
-	#trials = Post.from_json(request.json)
-	print 'received rating'
-
-
-	print(request.json)
-	#content= json.loads(request.json) 
-	content = request.get_json(silent = True) #data is a stringified object do we need to parse this??
-	print content
-	
-	#content = json.loads(trials)
-	#list of objects circle through and add new row for each item in list
-	# for each list add new row, and append the rt that is same for all
-	#trial_data= Trials(stimuli_id =content['stimulus'], start_time= content['start_time'], stop_time = content['stop_time'])
-	trial_data= Trials(start_time= content['start_time'], stop_time = content['stop_time'])
+	print(request.data)
+	content = request.get_json(silent=True)
+	trial_data= Trials(start_time= content["start_time"], stop_time = content["stop_time"])
+	#trial_data= Trials(stimuli_id= content["video"], start_time= content["start_time"], stop_time = content["stop_time"])
+	print 'got one more'
 	db.session.add(trial_data)
 	db.session.commit()
 	#return 'hello'
-	#return jsonify(post.to_json())
+	return jsonify(post.to_json())
 
 # @app.route('/stimuli', methods =['POST'])
 # def Stimuli_to_db():

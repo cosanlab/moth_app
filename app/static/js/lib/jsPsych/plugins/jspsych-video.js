@@ -130,10 +130,13 @@ jsPsych.plugins.video = (function() {
     var end_trial = function() {
 
       var trial_data = {
-        //'video': JSON.stringify(trial.stimuli),
+        'video': trial.sources,
         'start_time': trial.start,
         'stop_time': trial.stop
       };
+
+
+      console.log(trial_data);
 
       // here we need to create function to save 
       // data parameter should be either the value of jsPsych.data()
@@ -144,9 +147,9 @@ jsPsych.plugins.video = (function() {
          $.ajax({
             type:'POST',
             cache: false,
-            url: "", 
+            url: "videotrial", 
             contentType: 'application/json',
-            data: {json_str: JSON.stringify(trial_data)}, //JSON.stringify(trial_data),
+            data: JSON.stringify(trial_data), //{json_str: JSON.stringify(trial_data)}, //,
             success: function(output) { 
               console.log(output); 
             },
