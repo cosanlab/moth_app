@@ -26,10 +26,8 @@ def rating_to_db():
 	for key in content:
 		if key == 'rt':
 			response = content['rt']
-			print response
 		if key == 'ratings':
 			ratings = content['ratings']
-			print ratings 
 			for circleObj in ratings: # for each dictionary in the list
 				if circleObj['selected'] == True:
 					selected =1
@@ -39,8 +37,7 @@ def rating_to_db():
 				all_ratings.append(circle)
 	db.session.add_all(all_ratings)
 	db.session.commit()
-	#return
-	return jsonify(post.to_json())
+	return content
 
 @app.route('/videotrial', methods =['POST'])
 def trials_to_db():
@@ -52,7 +49,7 @@ def trials_to_db():
 	db.session.add(trial_data)
 	db.session.commit()
 	#return 'hello'
-	return jsonify(post.to_json())
+	return content
 
 # @app.route('/stimuli', methods =['POST'])
 # def Stimuli_to_db():

@@ -22,27 +22,74 @@
 <script type ="text/javascript">
 
 // video stimuli from database 
-//var video_stim = {{ stim_names|safe }};
-//console.log(video_stim);
-//var video_stim = ["static/stim/Burns_Fameishness.mp4"];
+var video_stim = {{ stim_names|safe }};
+console.log(video_stim);
+var video_stim = ["static/stim/Burns_Fameishness.mp4"];
 /*experiment parameters*/
 
 var video_stim=['http://clips.vorwaerts-gmbh.de/VfE_html5.mp4'];
-// var video_stim=['https://www.youtube.com/embed/GZH7sraVrFY?start=10&end=20&autoplay=1&controls=0&fs=0'];
 
 //Global variables to determine stopping points
-var num_stop= {{ num_stops|safe }}; 
-console.log(num_stop);
-var vid_length=60;
-var max=vid_length;
+var numStop= {{ num_stops|safe }}; 
+console.log(numStop);
+var vidLength=20;
+var max=vidLength;
 var min=2;
 
-// function to create stopping times- returns a list of arrays 
-var create_times = function(num_stop, max, min){
-  for (i=0; i<num_stop; i++){
-    times.push(Math.floor(Math.random()*(max-min+1))+min);
+
+// sample rate is percent of time stops as proportion
+var createTimes = function(vidLength, minDiff, sampleRate, numTrys= 1000) {
+  var numStops = Math.floor(vidLength*sampleRate);
+
+  var vidRange = _.range(1,vidLength);
+
+  for (var t = 0; t < numTrys; t++) {
+      var starts = _.sample(vidRange,numStops).sort(function(a,b){return a-b});
+      starts.unshift(0);
+  
+  // sample from all possible times and sort in ascending order
+      var zipped = _.zip(starts.slice(1), starts.slice(0,starts.length-1))
+      var check = _.map(zipped, function(pair) {return (pair[0]- pair[1]) >= minDiff})
+      var allTrue= check.every(function(elem){return elem===true})
+      if (allTrue){
+        break;
+      }
+  } 
+
+  if (allTrue) {
+    return starts;
+  } else {
+    console.log('could not find solution');
   }
-  return times;
+}
+// creates list of times with the maxium average distance between determined by length tand the sample rate= remember sample rate avgDiff tradeoff
+var createTimesAvg = function(vidLength, sampleRate, avgDiff , numTrys= 10000, minDiff=2) {
+
+  var numStops = Math.floor(vidLength*sampleRate);
+  // if avgDiff not specified will give max avg based on vid length and sample rate
+  var avgDiff = avgDiff || (vidLength/(vidLength*sampleRate)) -1;
+  var vidRange = _.range(1,vidLength);
+
+  for (var t = 0; t < numTrys; t++) {
+      var starts = _.sample(vidRange,numStops).sort(function(a,b){return a-b});
+      starts.unshift(0);
+  
+  // sample from all possible times and sort in ascending order
+      var zipped = _.zip(starts.slice(1), starts.slice(0,starts.length-1));
+      var check = _.map(zipped, function(pair) {return (pair[0]- pair[1]) >= minDiff});
+      var allTrue= check.every(function(elem){return elem===true});
+      var allDiff =_.map(zipped, function(pair) {return pair[0] - pair[1]});
+      var avg = allDiff.reduce(function(a,b) {return a+b})/allDiff.length;
+      if (allTrue && avg >= avgDiff){
+        break;
+      }
+  } 
+
+  if (allTrue && avg >= avgDiff) {
+    return starts;
+  } else {
+    console.log('could not find solution');
+  }
 }
 
 /* define welcome message block */
@@ -50,14 +97,6 @@ var welcome_block = {
     type: "text",
     text: "Welcome to the experiment. Press any key to begin."
 };
-
-// declare the block.
-// var consent = {
-//   type:'html',
-//   url: "consent_page.html",
-//   cont_btn: "start",
-//   check_fn: check_consent
-// };
 
 // var check_consent = function(elem) {
 //   if ($('#consent_checkbox').is(':checked')) {
@@ -69,6 +108,15 @@ var welcome_block = {
 //   }
 //   return false;
 // };
+
+// var consent = {
+//   type:'html',
+//   url: "consent_page.html",
+//   cont_btn: "start",
+//   check_fn: check_consent
+// };
+
+
 
 var instructions_block = {
     type: "text",
@@ -96,22 +144,20 @@ timeline.push(welcome_block);
 // timeline.push(consent);
 timeline.push(instructions_block);
 
+
 //Loop through each video (one trial) and add the wheel obj and video clips for that video
 for (var trial = 0; trial < video_stim.length; trial++) {
 
   // create stop times for that video 
-  var times=[0];
-  create_times(num_stop, max, min);
-  stop_times= times.sort(function(a, b){return a-b});
-  console.log("stop times", stop_times);
+  var stopTimes= createTimesAvg(vidLength, sampleRate);
+  console.log("stop times", stopTimes);
 
   // creat video objects and put in list
   var vid_objects=[];
   var video_pres;
-  for (time = 1; time < stop_times.length; time++) { 
+  for (var time = 1; time < stopTimes.length; time++) { 
       video_pres = {
         type: 'video',
-        //sources: [video_stim[0]],
         sources: [video_stim[trial]],
         start: 0, //stop_times[time-1],
         stop: 10 //stop_times[time]

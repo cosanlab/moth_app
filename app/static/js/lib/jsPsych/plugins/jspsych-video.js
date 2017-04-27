@@ -92,7 +92,7 @@ jsPsych.plugins.video = (function() {
     for(var i=0; i<trial.sources.length; i++){
       var s = trial.sources[i];
       var type = s.substr(s.lastIndexOf('.') + 1);
-      type = type.toLowerCase();
+      type = type.toLowerCase(); // should be webm
       
       // adding start stop parameters if specified
       video_html+='<source src="'+s
