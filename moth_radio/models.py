@@ -1,4 +1,4 @@
-from app import db
+from moth_radio import db
 
 ## note: might need to lower precision on Floats
 # can add backrefs if need be 

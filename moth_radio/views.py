@@ -1,4 +1,4 @@
-from app import app, db, models
+from moth_radio import app, db, models
 from flask import Flask, render_template, url_for, request 
 import json
 from models import Trials, Users, Stimuli, Ratings

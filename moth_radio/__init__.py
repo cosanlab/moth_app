@@ -15,7 +15,7 @@ app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = 0
 db = SQLAlchemy(app)
 
-from app import models, views
+from moth_radio import models, views
 #creating the database- not going to overwrite preexisting 
 db.create_all()
 
