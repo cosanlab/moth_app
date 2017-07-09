@@ -41,15 +41,12 @@ def rating_to_db():
 
 @app.route('/videotrial', methods =['POST'])
 def trials_to_db():
-	print(request.data)
 	content = request.get_json(silent=True)
 	trial_data= Trials(start_time= content["start_time"], stop_time = content["stop_time"])
 	#trial_data= Trials(stimuli_id= content["video"], start_time= content["start_time"], stop_time = content["stop_time"])
-	print 'got one more'
 	db.session.add(trial_data)
 	db.session.commit()
-	#return 'hello'
-	return content
+	return json.dumps(content)
 
 # @app.route('/stimuli', methods =['POST'])
 # def Stimuli_to_db():

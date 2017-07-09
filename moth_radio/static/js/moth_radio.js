@@ -118,6 +118,29 @@ timeline.push(welcome_block);
 // timeline.push(consent);
 timeline.push(instructions_block);
 
+var saveVideoData = function(data) {
+	
+	var dataToStore = {
+		'video': JSON.parse(data.stimulus),
+		'start_time': data.start_time,
+		'stop_time': data.stop_time,
+	};
+	
+	console.log(dataToStore);
+	
+	$.ajax({
+		type:'POST',
+		cache: false,
+		url: "videotrial", 
+		contentType: 'application/json',
+		data: JSON.stringify(dataToStore), //{json_str: JSON.stringify(trial_data)}, //,
+		success: function(output) {
+		},
+		error: function(error) {
+			console.log('service failed!')
+		} 
+	});
+}
 
 //Loop through each video (one trial) and add the wheel obj and video clips for that video
 for (var trial = 0; trial < video_stim.length; trial++) {
@@ -135,7 +158,8 @@ for (var trial = 0; trial < video_stim.length; trial++) {
 		type: 'video',
 		sources: [video_stim[trial]],
 		start: 0, //stop_times[time-1],
-		stop: 10 //stop_times[time]
+		stop: 2, //stop_times[time]
+		on_finish: saveVideoData,
 	  };
 	  vid_objects.push(video_pres);
   };
