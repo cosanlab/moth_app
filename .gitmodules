@@ -1,6 +1,3 @@
 [submodule "moth_radio/static/js/lib/rating_wheel"]
 	path = moth_radio/static/js/lib/rating_wheel
 	url = https://github.com/cosanlab/rating_wheel
-[submodule "moth_radio/static/lib/jsPsch"]
-	path = moth_radio/static/lib/jsPsch
-	url = https://github.com/jspsych/jsPsych
