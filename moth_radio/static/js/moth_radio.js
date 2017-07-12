@@ -68,8 +68,8 @@ var createTimesAvg = function(vidLength, sampleRate, avgDiff , numTrys= 10000, m
 
 /* define welcome message block */
 var welcome_block = {
-	type: "text",
-	text: "Welcome to the experiment. Press any key to begin."
+	type: "html-keyboard-response",
+	stimulus: "<p>Welcome to the experiment. Press any key to begin.</p>"
 };
 
 // var check_consent = function(elem) {
@@ -93,8 +93,8 @@ var welcome_block = {
 
 
 var instructions_block = {
-	type: "text",
-	text: "<p>You are going to watch a video clip. The clip will pause  " +
+	type: "html-keyboard-response",
+	stimulus: "<p>You are going to watch a video clip. The clip will pause  " +
 	'and random times and you will be presented with a rating wheel.</p> '+
 	'<p>Please rate your emotions at the time of the rating, '+
 	'and press the spacebar when you are finished to continue watching the video clip.</p>'+
@@ -102,14 +102,14 @@ var instructions_block = {
 };
 
 var in_between_block = {
-	type: "text",
-	text: "<p> Next video will start soon.</p><p>Click the spacebar to begin.</p>" 
+	type: "html-keyboard-response",
+	stimulus: "<p> Next video will start soon.</p><p>Click the spacebar to begin.</p>" 
 };
 
 /*end message*/
 var end_msg= {
-	type: "text",
-	text: "Thank you for participating! "
+	type: "html-keyboard-response",
+	stimulus: "Thank you for participating! "
   };
 
 /* create timeline and push objects to timeline*/

@@ -40,8 +40,6 @@ jsPsych.plugins['rating-wheel'] = (function() {
 	// must call jsPSyc. finsiht rial when is done running
 	plugin.trial = function(display_element, trial) {
 
-		trial = jsPsych.pluginAPI.evaluateFunctionParameters(trial);
-
 		// set default values for parameters
 		trial.parameter = trial.parameter || 'default value';
 		trial.choices = trial.choices || jsPsych.ALL_KEYS;
