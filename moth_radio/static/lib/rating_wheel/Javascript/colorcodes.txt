@@ -1,0 +1,1005 @@
+/*
+// from Seaborn
+
+def husl_palette(n_colors=6, h=.01, s=.9, l=.65):
+    """Get a set of evenly spaced colors in HUSL hue space.
+
+    h, s, and l should be between 0 and 1
+
+    Parameters
+    ----------
+
+    n_colors : int
+        number of colors in the palette
+    h : float
+        first hue
+    s : float
+        saturation
+    l : float
+        lightness
+
+    Returns
+    -------
+    palette : seaborn color palette
+        List-like object of colors as RGB tuples.
+
+    See Also
+    --------
+    hls_palette : Make a palette using evently spaced circular hues in the
+                  HSL system.
+
+    Examples
+    --------
+
+    Create a palette of 10 colors with the default parameters:
+
+    .. plot::
+        :context: close-figs
+
+        >>> import seaborn as sns; sns.set()
+        >>> sns.palplot(sns.husl_palette(10))
+
+    Create a palette of 10 colors that begins at a different hue value:
+
+    .. plot::
+        :context: close-figs
+
+        >>> sns.palplot(sns.husl_palette(10, h=.5))
+
+    Create a palette of 10 colors that are darker than the default:
+
+    .. plot::
+        :context: close-figs
+
+        >>> sns.palplot(sns.husl_palette(10, l=.4))
+
+    Create a palette of 10 colors that are less saturated than the default:
+
+    .. plot::
+        :context: close-figs
+
+        >>> sns.palplot(sns.husl_palette(10, s=.4))
+
+    """
+    hues = np.linspace(0, 1, n_colors + 1)[:-1] // generate n_colors+1 # of evenly spaced numbers from 0 to 1 (inclusive), BUT remove the last value
+    hues += h // "add and" operator: add h to all array values
+    hues %= 1 // "modulus and" operator: divide array items by 1, return remainders as array
+    hues *= 359 // "multiply and" operator: multipl array items by 359, return products as array
+    s *= 99 // "multiply and" operator: multiplies s * 99, sets s = to product
+    l *= 99 // "multiply and" operator: multiplies l * 99, sets l = to product
+    palette = [husl.husl_to_rgb(h_i, s, l) for h_i in hues] // create array of int[3]'s, one for each previously created value
+    return _ColorPalette(palette)
+	
+	// defining husl.husl_to_rgb(h_i, s, l)
+	def husl_to_rgb(h, s, l):
+    	return lch_to_rgb(*husl_to_lch([h, s, l]))
+	def husl_to_lch(triple):
+	    H, S, L = triple
+	    if L > 99.9999999:
+	        return [100, 0.0, H]
+	    if L < 0.00000001:
+	        return [0.0, 0.0, H]
+	    mx = max_chroma(L, H)
+	    C = mx / 100.0 * S
+	    return [L, C, H]
+	def lch_to_rgb(l, c, h):
+    	return xyz_to_rgb(luv_to_xyz(lch_to_luv([l, c, h])))
+    def lch_to_luv(triple):
+	    L, C, H = triple
+	    Hrad = math.radians(H)
+	    U = (math.cos(Hrad) * C)
+	    V = (math.sin(Hrad) * C)
+	    return [L, U, V]
+	def luv_to_xyz(triple):
+	    L, U, V = triple
+	    if L == 0:
+	        return [0.0, 0.0, 0.0]
+	    varY = f_inv((L + 16.0) / 116.0)
+	    varU = U / (13.0 * L) + refU
+	    varV = V / (13.0 * L) + refV
+	    Y = varY * refY
+	    X = 0.0 - (9.0 * Y * varU) / ((varU - 4.0) * varV - varU * varV)
+	    Z = (9.0 * Y - (15.0 * varV * Y) - (varV * X)) / (3.0 * varV)
+	    return [X, Y, Z]
+	def f_inv(t):
+	    if math.pow(t, 3.0) > lab_e:
+	        return (math.pow(t, 3.0))
+	    else:
+	        return (116.0 * t - 16.0) / lab_k
+	lab_e = 0.008856
+	lab_k = 903.3
+	refU = 0.19784
+	refV = 0.46834
+	def xyz_to_rgb(triple):
+	    xyz = map(lambda row: dot_product(row, triple), m)
+	    return list(map(from_linear, xyz))
+	m = [
+		    [3.2406, -1.5372, -0.4986],
+		    [-0.9689, 1.8758, 0.0415],
+		    [0.0557, -0.2040, 1.0570]
+		]
+	def from_linear(c):
+	    if c <= 0.0031308:
+	        return 12.92 * c
+	    else:
+	        return (1.055 * math.pow(c, 1.0 / 2.4) - 0.055)
+	def dot_product(a, b):
+    	return sum(map(operator.mul, a, b))
+	def max_chroma(L, H):
+	    hrad = math.radians(H)
+	    sinH = (math.sin(hrad))
+	    cosH = (math.cos(hrad))
+	    sub1 = (math.pow(L + 16, 3.0) / 1560896.0)
+	    sub2 = sub1 if sub1 > 0.008856 else (L / 903.3)
+	    result = float("inf")
+	    for row in m:
+	        m1 = row[0]
+	        m2 = row[1]
+	        m3 = row[2]
+	        top = ((0.99915 * m1 + 1.05122 * m2 + 1.14460 * m3) * sub2)
+	        rbottom = (0.86330 * m3 - 0.17266 * m2)
+	        lbottom = (0.12949 * m3 - 0.38848 * m1)
+	        bottom = (rbottom * sinH + lbottom * cosH) * sub2
+
+	        for t in (0.0, 1.0):
+	            C = (L * (top - 1.05122 * t) / (bottom + 0.17266 * sinH * t))
+	            if C > 0.0 and C < result:
+	                result = C
+	    return result
+*/
+
+/*
+// from Seaborn
+def mpl_palette(name, n_colors=6):
+    """Return discrete colors from a matplotlib palette.
+
+    Note that this handles the qualitative colorbrewer palettes
+    properly, although if you ask for more colors than a particular
+    qualitative palette can provide you will get fewer than you are
+    expecting. In contrast, asking for qualitative color brewer palettes
+    using :func:`color_palette` will return the expected number of colors,
+    but they will cycle.
+
+    If you are using the IPython notebook, you can also use the function
+    :func:`choose_colorbrewer_palette` to interactively select palettes.
+
+    Parameters
+    ----------
+    name : string
+        Name of the palette. This should be a named matplotlib colormap.
+    n_colors : int
+        Number of discrete colors in the palette.
+
+    Returns
+    -------
+    palette or cmap : seaborn color palette or matplotlib colormap
+        List-like object of colors as RGB tuples, or colormap object that
+        can map continuous values to colors, depending on the value of the
+        ``as_cmap`` parameter.
+
+    Examples
+    --------
+
+    Create a qualitative colorbrewer palette with 8 colors:
+
+    .. plot::
+        :context: close-figs
+
+        >>> import seaborn as sns; sns.set()
+        >>> sns.palplot(sns.mpl_palette("Set2", 8))
+
+    Create a sequential colorbrewer palette:
+
+    .. plot::
+        :context: close-figs
+
+        >>> sns.palplot(sns.mpl_palette("Blues"))
+
+    Create a diverging palette:
+
+    .. plot::
+        :context: close-figs
+
+        >>> sns.palplot(sns.mpl_palette("seismic", 8))
+
+    Create a "dark" sequential palette:
+
+    .. plot::
+        :context: close-figs
+
+        >>> sns.palplot(sns.mpl_palette("GnBu_d"))
+
+    """
+    brewer_qual_pals = {"Accent": 8, "Dark2": 8, "Paired": 12,
+                        "Pastel1": 9, "Pastel2": 8,
+                        "Set1": 9, "Set2": 8, "Set3": 12}
+
+    if name.endswith("_d"):
+        pal = ["#333333"]
+        pal.extend(color_palette(name.replace("_d", "_r"), 2))
+        cmap = blend_palette(pal, n_colors, as_cmap=True)
+    else:
+        cmap = getattr(mpl.cm, name)
+    if name in brewer_qual_pals:
+        bins = np.linspace(0, 1, brewer_qual_pals[name])[:n_colors]
+    else:
+        bins = np.linspace(0, 1, n_colors + 2)[1:-1]
+    palette = list(map(tuple, cmap(bins)[:, :3]))
+
+    return _ColorPalette(palette)
+*/
+
+
+/*
+def _color_to_rgb(color, input):
+    """Add some more flexibility to color choices."""
+    if input == "hls":
+        color = colorsys.hls_to_rgb(*color)
+    elif input == "husl":
+        color = husl.husl_to_rgb(*color)
+    elif input == "xkcd":
+        color = xkcd_rgb[color]
+    return color
+
+    // defining colorsys.hls_to_rgb
+    def hls_to_rgb(h, l, s):
+	    if s == 0.0:
+	        return l, l, l
+	    if l <= 0.5:
+	        m2 = l * (1.0+s)
+	    else:
+	        m2 = l+s-(l*s)
+	    m1 = 2.0*l - m2
+	    return (_v(m1, m2, h+ONE_THIRD), _v(m1, m2, h), _v(m1, m2, h-ONE_THIRD))
+*/
+
+/*
+// from Seaborn: custom light/dark palettes
+
+def dark_palette(color, n_colors=6, reverse=False, as_cmap=False, input="rgb"):
+    """Make a sequential palette that blends from dark to ``color``.
+
+    This kind of palette is good for data that range between relatively
+    uninteresting low values and interesting high values.
+
+    The ``color`` parameter can be specified in a number of ways, including
+    all options for defining a color in matplotlib and several additional
+    color spaces that are handled by seaborn. You can also use the database
+    of named colors from the XKCD color survey.
+
+    If you are using the IPython notebook, you can also choose this palette
+    interactively with the :func:`choose_dark_palette` function.
+
+    Parameters
+    ----------
+    color : base color for high values
+        hex, rgb-tuple, or html color name
+    n_colors : int, optional
+        number of colors in the palette
+    reverse : bool, optional
+        if True, reverse the direction of the blend
+    as_cmap : bool, optional
+        if True, return as a matplotlib colormap instead of list
+    input : {'rgb', 'hls', 'husl', xkcd'}
+        Color space to interpret the input color. The first three options
+        apply to tuple inputs and the latter applies to string inputs.
+
+    Returns
+    -------
+    palette or cmap : seaborn color palette or matplotlib colormap
+        List-like object of colors as RGB tuples, or colormap object that
+        can map continuous values to colors, depending on the value of the
+        ``as_cmap`` parameter.
+
+    See Also
+    --------
+    light_palette : Create a sequential palette with bright low values.
+    diverging_palette : Create a diverging palette with two colors.
+
+    Examples
+    --------
+
+    Generate a palette from an HTML color:
+
+    .. plot::
+        :context: close-figs
+
+        >>> import seaborn as sns; sns.set()
+        >>> sns.palplot(sns.dark_palette("purple"))
+
+    Generate a palette that decreases in lightness:
+
+    .. plot::
+        :context: close-figs
+
+        >>> sns.palplot(sns.dark_palette("seagreen", reverse=True))
+
+    Generate a palette from an HUSL-space seed:
+
+    .. plot::
+        :context: close-figs
+
+        >>> sns.palplot(sns.dark_palette((260, 75, 60), input="husl"))
+
+    Generate a colormap object:
+
+    .. plot::
+        :context: close-figs
+
+        >>> from numpy import arange
+        >>> x = arange(25).reshape(5, 5)
+        >>> cmap = sns.dark_palette("#2ecc71", as_cmap=True)
+        >>> ax = sns.heatmap(x, cmap=cmap)
+
+    """
+    color = _color_to_rgb(color, input)
+    gray = "#222222"
+    colors = [color, gray] if reverse else [gray, color]
+    return blend_palette(colors, n_colors, as_cmap)
+
+
+def light_palette(color, n_colors=6, reverse=False, as_cmap=False,
+                  input="rgb"):
+    """Make a sequential palette that blends from light to ``color``.
+
+    This kind of palette is good for data that range between relatively
+    uninteresting low values and interesting high values.
+
+    The ``color`` parameter can be specified in a number of ways, including
+    all options for defining a color in matplotlib and several additional
+    color spaces that are handled by seaborn. You can also use the database
+    of named colors from the XKCD color survey.
+
+    If you are using the IPython notebook, you can also choose this palette
+    interactively with the :func:`choose_light_palette` function.
+
+    Parameters
+    ----------
+    color : base color for high values
+        hex code, html color name, or tuple in ``input`` space.
+    n_colors : int, optional
+        number of colors in the palette
+    reverse : bool, optional
+        if True, reverse the direction of the blend
+    as_cmap : bool, optional
+        if True, return as a matplotlib colormap instead of list
+    input : {'rgb', 'hls', 'husl', xkcd'}
+        Color space to interpret the input color. The first three options
+        apply to tuple inputs and the latter applies to string inputs.
+
+    Returns
+    -------
+    palette or cmap : seaborn color palette or matplotlib colormap
+        List-like object of colors as RGB tuples, or colormap object that
+        can map continuous values to colors, depending on the value of the
+        ``as_cmap`` parameter.
+
+    See Also
+    --------
+    dark_palette : Create a sequential palette with dark low values.
+    diverging_palette : Create a diverging palette with two colors.
+
+    Examples
+    --------
+
+    Generate a palette from an HTML color:
+
+    .. plot::
+        :context: close-figs
+
+        >>> import seaborn as sns; sns.set()
+        >>> sns.palplot(sns.light_palette("purple"))
+
+    Generate a palette that increases in lightness:
+
+    .. plot::
+        :context: close-figs
+
+        >>> sns.palplot(sns.light_palette("seagreen", reverse=True))
+
+    Generate a palette from an HUSL-space seed:
+
+    .. plot::
+        :context: close-figs
+
+        >>> sns.palplot(sns.light_palette((260, 75, 60), input="husl"))
+
+    Generate a colormap object:
+
+    .. plot::
+        :context: close-figs
+
+        >>> from numpy import arange
+        >>> x = arange(25).reshape(5, 5)
+        >>> cmap = sns.light_palette("#2ecc71", as_cmap=True)
+        >>> ax = sns.heatmap(x, cmap=cmap)
+
+    """
+    color = _color_to_rgb(color, input)
+    light = set_hls_values(color, l=.95)
+    colors = [color, light] if reverse else [light, color]
+    return blend_palette(colors, n_colors, as_cmap)
+// defining set_hls_values
+def set_hls_values(color, h=None, l=None, s=None):
+    """Independently manipulate the h, l, or s channels of a color.
+
+    Parameters
+    ----------
+    color : matplotlib color
+        hex, rgb-tuple, or html color name
+    h, l, s : floats between 0 and 1, or None
+        new values for each channel in hls space
+
+    Returns
+    -------
+    new_color : rgb tuple
+        new color code in RGB tuple representation
+
+    """
+    # Get rgb tuple representation
+    rgb = mplcol.colorConverter.to_rgb(color)
+    vals = list(colorsys.rgb_to_hls(*rgb))
+    for i, val in enumerate([h, l, s]):
+        if val is not None:
+            vals[i] = val
+
+    rgb = colorsys.hls_to_rgb(*vals)
+    return rgb
+// defining colorsys.rgb_to_hls(r, g, b)
+def rgb_to_hls(r, g, b):
+	maxc = max(r, g, b)
+    minc = min(r, g, b)
+    # XXX Can optimize (maxc+minc) and (maxc-minc)
+    l = (minc+maxc)/2.0
+    if minc == maxc:
+        return 0.0, l, 0.0
+    if l <= 0.5:
+        s = (maxc-minc) / (maxc+minc)
+    else:
+        s = (maxc-minc) / (2.0-maxc-minc)
+    rc = (maxc-r) / (maxc-minc)
+    gc = (maxc-g) / (maxc-minc)
+    bc = (maxc-b) / (maxc-minc)
+    if r == maxc:
+        h = bc-gc
+    elif g == maxc:
+        h = 2.0+rc-bc
+    else:
+        h = 4.0+gc-rc
+    h = (h/6.0) % 1.0
+    return h, l, s
+// defining colorConverter.to_rgb()
+def to_rgb(self, arg):
+        """
+        Returns an *RGB* tuple of three floats from 0-1.
+
+        *arg* can be an *RGB* or *RGBA* sequence or a string in any of
+        several forms:
+
+            1) a letter from the set 'rgbcmykw'
+            2) a hex color string, like '#00FFFF'
+            3) a standard name, like 'aqua'
+            4) a string representation of a float, like '0.4',
+               indicating gray on a 0-1 scale
+
+        if *arg* is *RGBA*, the *A* will simply be discarded.
+        """
+        # Gray must be a string to distinguish 3-4 grays from RGB or RGBA.
+
+        try:
+            return self.cache[arg]
+        except KeyError:
+            pass
+        except TypeError:  # could be unhashable rgb seq
+            arg = tuple(arg)
+            try:
+                return self.cache[arg]
+            except KeyError:
+                pass
+            except TypeError:
+                raise ValueError(
+                    'to_rgb: arg "%s" is unhashable even inside a tuple'
+                    % (str(arg),))
+
+        try:
+            if cbook.is_string_like(arg):
+                argl = arg.lower()
+                color = self.colors.get(argl, None)
+                if color is None:
+                    str1 = cnames.get(argl, argl)
+                    if str1.startswith('#'):
+                        color = hex2color(str1)
+                    else:
+                        fl = float(argl)
+                        if fl < 0 or fl > 1:
+                            raise ValueError(
+                                'gray (string) must be in range 0-1')
+                        color = (fl,)*3
+            elif cbook.iterable(arg):
+                if len(arg) > 4 or len(arg) < 3:
+                    raise ValueError(
+                        'sequence length is %d; must be 3 or 4' % len(arg))
+                color = tuple(arg[:3])
+                if [x for x in color if (float(x) < 0) or (x > 1)]:
+                    # This will raise TypeError if x is not a number.
+                    raise ValueError(
+                        'number in rbg sequence outside 0-1 range')
+            else:
+                raise ValueError(
+                    'cannot convert argument to rgb sequence')
+
+            self.cache[arg] = color
+
+        except (KeyError, ValueError, TypeError) as exc:
+            raise ValueError(
+                'to_rgb: Invalid rgb arg "%s"\n%s' % (str(arg), exc))
+            # Error messages could be improved by handling TypeError
+            # separately; but this should be rare and not too hard
+            # for the user to figure out as-is.
+        return color
+*/
+
+/*
+// from Seaborn: custom diverging palettes
+def _flat_palette(color, n_colors=6, reverse=False, as_cmap=False,
+                  input="rgb"):
+    """Make a sequential palette that blends from gray to ``color``.
+
+    Parameters
+    ----------
+    color : matplotlib color
+        hex, rgb-tuple, or html color name
+    n_colors : int, optional
+        number of colors in the palette
+    reverse : bool, optional
+        if True, reverse the direction of the blend
+    as_cmap : bool, optional
+        if True, return as a matplotlib colormap instead of list
+
+    Returns
+    -------
+    palette : list or colormap
+    dark_palette : Create a sequential palette with dark low values.
+
+    """
+    color = _color_to_rgb(color, input)
+    flat = desaturate(color, 0)
+    colors = [color, flat] if reverse else [flat, color]
+    return blend_palette(colors, n_colors, as_cmap)
+// defining desaturate(color, prop)
+def desaturate(color, prop):
+    """Decrease the saturation channel of a color by some percent.
+
+    Parameters
+    ----------
+    color : matplotlib color
+        hex, rgb-tuple, or html color name
+    prop : float
+        saturation channel of color will be multiplied by this value
+
+    Returns
+    -------
+    new_color : rgb tuple
+        desaturated color code in RGB tuple representation
+
+    """
+    # Check inputs
+    if not 0 <= prop <= 1:
+        raise ValueError("prop must be between 0 and 1")
+
+    # Get rgb tuple rep
+    rgb = mplcol.colorConverter.to_rgb(color)
+
+    # Convert to hls
+    h, l, s = colorsys.rgb_to_hls(*rgb)
+
+    # Desaturate the saturation channel
+    s *= prop
+
+    # Convert back to rgb
+    new_color = colorsys.hls_to_rgb(h, l, s)
+
+    return new_color
+
+
+def diverging_palette(h_neg, h_pos, s=75, l=50, sep=10, n=6, center="light",
+                      as_cmap=False):
+    """Make a diverging palette between two HUSL colors.
+
+    If you are using the IPython notebook, you can also choose this palette
+    interactively with the :func:`choose_diverging_palette` function.
+
+    Parameters
+    ----------
+    h_neg, h_pos : float in [0, 359]
+        Anchor hues for negative and positive extents of the map.
+    s : float in [0, 100], optional
+        Anchor saturation for both extents of the map.
+    l : float in [0, 100], optional
+        Anchor lightness for both extents of the map.
+    n : int, optional
+        Number of colors in the palette (if not returning a cmap)
+    center : {"light", "dark"}, optional
+        Whether the center of the palette is light or dark
+    as_cmap : bool, optional
+        If true, return a matplotlib colormap object rather than a
+        list of colors.
+
+    Returns
+    -------
+    palette or cmap : seaborn color palette or matplotlib colormap
+        List-like object of colors as RGB tuples, or colormap object that
+        can map continuous values to colors, depending on the value of the
+        ``as_cmap`` parameter.
+
+    See Also
+    --------
+    dark_palette : Create a sequential palette with dark values.
+    light_palette : Create a sequential palette with light values.
+
+    Examples
+    --------
+
+    Generate a blue-white-red palette:
+
+    .. plot::
+        :context: close-figs
+
+        >>> import seaborn as sns; sns.set()
+        >>> sns.palplot(sns.diverging_palette(240, 10, n=9))
+
+    Generate a brighter green-white-purple palette:
+
+    .. plot::
+        :context: close-figs
+
+        >>> sns.palplot(sns.diverging_palette(150, 275, s=80, l=55, n=9))
+
+    Generate a blue-black-red palette:
+
+    .. plot::
+        :context: close-figs
+
+        >>> sns.palplot(sns.diverging_palette(250, 15, s=75, l=40,
+        ...                                   n=9, center="dark"))
+
+    Generate a colormap object:
+
+    .. plot::
+        :context: close-figs
+
+        >>> from numpy import arange
+        >>> x = arange(25).reshape(5, 5)
+        >>> cmap = sns.diverging_palette(220, 20, sep=20, as_cmap=True)
+        >>> ax = sns.heatmap(x, cmap=cmap)
+
+    """
+    palfunc = dark_palette if center == "dark" else light_palette
+    neg = palfunc((h_neg, s, l), 128 - (sep / 2), reverse=True, input="husl")
+    pos = palfunc((h_pos, s, l), 128 - (sep / 2), input="husl")
+    midpoint = dict(light=[(.95, .95, .95, 1.)],
+                    dark=[(.133, .133, .133, 1.)])[center]
+    mid = midpoint * sep
+    pal = blend_palette(np.concatenate([neg, mid,  pos]), n, as_cmap=as_cmap)
+    return pal
+
+
+def blend_palette(colors, n_colors=6, as_cmap=False, input="rgb"):
+    """Make a palette that blends between a list of colors.
+
+    Parameters
+    ----------
+    colors : sequence of colors in various formats interpreted by ``input``
+        hex code, html color name, or tuple in ``input`` space.
+    n_colors : int, optional
+        Number of colors in the palette.
+    as_cmap : bool, optional
+        If True, return as a matplotlib colormap instead of list.
+
+    Returns
+    -------
+    palette or cmap : seaborn color palette or matplotlib colormap
+        List-like object of colors as RGB tuples, or colormap object that
+        can map continuous values to colors, depending on the value of the
+        ``as_cmap`` parameter.
+
+    """
+    colors = [_color_to_rgb(color, input) for color in colors]
+    name = "blend"
+    pal = mpl.colors.LinearSegmentedColormap.from_list(name, colors)
+    if not as_cmap:
+        pal = _ColorPalette(pal(np.linspace(0, 1, n_colors)))
+    return pal
+
+// defining mpl.colors.LinearSegmentedColormap.from_list(name, colors)
+def from_list(name, colors, N=256, gamma=1.0):
+        """
+        Make a linear segmented colormap with *name* from a sequence
+        of *colors* which evenly transitions from colors[0] at val=0
+        to colors[-1] at val=1.  *N* is the number of rgb quantization
+        levels.
+        Alternatively, a list of (value, color) tuples can be given
+        to divide the range unevenly.
+        """
+
+        if not cbook.iterable(colors):
+            raise ValueError('colors must be iterable')
+
+        if cbook.iterable(colors[0]) and len(colors[0]) == 2 and \
+                not cbook.is_string_like(colors[0]):
+            # List of value, color pairs
+            vals, colors = list(zip(*colors))
+        else:
+            vals = np.linspace(0., 1., len(colors))
+
+        cdict = dict(red=[], green=[], blue=[], alpha=[])
+        for val, color in zip(vals, colors):
+            r, g, b, a = colorConverter.to_rgba(color)
+            cdict['red'].append((val, r, r))
+            cdict['green'].append((val, g, g))
+            cdict['blue'].append((val, b, b))
+            cdict['alpha'].append((val, a, a))
+
+        return LinearSegmentedColormap(name, cdict, N, gamma)
+
+
+*/
+
+/*
+// from Seaborn: custom palettes from seaborn creator / crayons / xkcd colors
+
+SEABORN_PALETTES = dict(
+    deep=["#4C72B0", "#55A868", "#C44E52",
+          "#8172B2", "#CCB974", "#64B5CD"],
+    muted=["#4878CF", "#6ACC65", "#D65F5F",
+           "#B47CC7", "#C4AD66", "#77BEDB"],
+    pastel=["#92C6FF", "#97F0AA", "#FF9F9A",
+            "#D0BBFF", "#FFFEA3", "#B0E0E6"],
+    bright=["#003FFF", "#03ED3A", "#E8000B",
+            "#8A2BE2", "#FFC400", "#00D7FF"],
+    dark=["#001C7F", "#017517", "#8C0900",
+          "#7600A1", "#B8860B", "#006374"],
+    colorblind=["#0072B2", "#009E73", "#D55E00",
+                "#CC79A7", "#F0E442", "#56B4E9"]
+    )
+
+def xkcd_palette(colors):
+    """Make a palette with color names from the xkcd color survey.
+
+    See xkcd for the full list of colors: http://xkcd.com/color/rgb/
+
+    This is just a simple wrapper around the ``seaborn.xkcd_rgb`` dictionary.
+
+    Parameters
+    ----------
+    colors : list of strings
+        List of keys in the ``seaborn.xkcd_rgb`` dictionary.
+
+    Returns
+    -------
+    palette : seaborn color palette
+        Returns the list of colors as RGB tuples in an object that behaves like
+        other seaborn color palettes.
+
+    See Also
+    --------
+    crayon_palette : Make a palette with Crayola crayon colors.
+
+    """
+    palette = [xkcd_rgb[name] for name in colors]
+    return color_palette(palette, len(palette))
+
+
+def crayon_palette(colors):
+    """Make a palette with color names from Crayola crayons.
+
+    Colors are taken from here:
+    http://en.wikipedia.org/wiki/List_of_Crayola_crayon_colors
+
+    This is just a simple wrapper around the ``seaborn.crayons`` dictionary.
+
+    Parameters
+    ----------
+    colors : list of strings
+        List of keys in the ``seaborn.crayons`` dictionary.
+
+    Returns
+    -------
+    palette : seaborn color palette
+        Returns the list of colors as rgb tuples in an object that behaves like
+        other seaborn color palettes.
+
+    See Also
+    --------
+    xkcd_palette : Make a palette with named colors from the XKCD color survey.
+
+    """
+    palette = [crayons[name] for name in colors]
+    return color_palette(palette, len(palette))
+*/
+
+/*
+// from Seaborn: cubehelix palette system
+def cubehelix_palette(n_colors=6, start=0, rot=.4, gamma=1.0, hue=0.8,
+                      light=.85, dark=.15, reverse=False, as_cmap=False):
+    """Make a sequential palette from the cubehelix system.
+
+    This produces a colormap with linearly-decreasing (or increasing)
+    brightness. That means that information will be preserved if printed to
+    black and white or viewed by someone who is colorblind.  "cubehelix" is
+    also availible as a matplotlib-based palette, but this function gives the
+    user more control over the look of the palette and has a different set of
+    defaults.
+
+    Parameters
+    ----------
+    n_colors : int
+        Number of colors in the palette.
+    start : float, 0 <= start <= 3
+        The hue at the start of the helix.
+    rot : float
+        Rotations around the hue wheel over the range of the palette.
+    gamma : float 0 <= gamma
+        Gamma factor to emphasize darker (gamma < 1) or lighter (gamma > 1)
+        colors.
+    hue : float, 0 <= hue <= 1
+        Saturation of the colors.
+    dark : float 0 <= dark <= 1
+        Intensity of the darkest color in the palette.
+    light : float 0 <= light <= 1
+        Intensity of the lightest color in the palette.
+    reverse : bool
+        If True, the palette will go from dark to light.
+    as_cmap : bool
+        If True, return a matplotlib colormap instead of a list of colors.
+
+    Returns
+    -------
+    palette or cmap : seaborn color palette or matplotlib colormap
+        List-like object of colors as RGB tuples, or colormap object that
+        can map continuous values to colors, depending on the value of the
+        ``as_cmap`` parameter.
+
+    See Also
+    --------
+    choose_cubehelix_palette : Launch an interactive widget to select cubehelix
+                               palette parameters.
+    dark_palette : Create a sequential palette with dark low values.
+    light_palette : Create a sequential palette with bright low values.
+
+    References
+    ----------
+    Green, D. A. (2011). "A colour scheme for the display of astronomical
+    intensity images". Bulletin of the Astromical Society of India, Vol. 39,
+    p. 289-295.
+
+    Examples
+    --------
+
+    Generate the default palette:
+
+    .. plot::
+        :context: close-figs
+
+        >>> import seaborn as sns; sns.set()
+        >>> sns.palplot(sns.cubehelix_palette())
+
+    Rotate backwards from the same starting location:
+
+    .. plot::
+        :context: close-figs
+
+        >>> sns.palplot(sns.cubehelix_palette(rot=-.4))
+
+    Use a different starting point and shorter rotation:
+
+    .. plot::
+        :context: close-figs
+
+        >>> sns.palplot(sns.cubehelix_palette(start=2.8, rot=.1))
+
+    Reverse the direction of the lightness ramp:
+
+    .. plot::
+        :context: close-figs
+
+        >>> sns.palplot(sns.cubehelix_palette(reverse=True))
+
+    Generate a colormap object:
+
+    .. plot::
+        :context: close-figs
+
+        >>> from numpy import arange
+        >>> x = arange(25).reshape(5, 5)
+        >>> cmap = sns.cubehelix_palette(as_cmap=True)
+        >>> ax = sns.heatmap(x, cmap=cmap)
+
+    Use the full lightness range:
+
+    .. plot::
+        :context: close-figs
+
+        >>> cmap = sns.cubehelix_palette(dark=0, light=1, as_cmap=True)
+        >>> ax = sns.heatmap(x, cmap=cmap)
+
+    """
+    cdict = mpl._cm.cubehelix(gamma, start, rot, hue)
+    cmap = mpl.colors.LinearSegmentedColormap("cubehelix", cdict)
+
+    x = np.linspace(light, dark, n_colors)
+    pal = cmap(x)[:, :3].tolist()
+    if reverse:
+        pal = pal[::-1]
+
+    if as_cmap:
+        x_256 = np.linspace(light, dark, 256)
+        if reverse:
+            x_256 = x_256[::-1]
+        pal_256 = cmap(x_256)
+        cmap = mpl.colors.ListedColormap(pal_256)
+        return cmap
+    else:
+        return _ColorPalette(pal)
+// defining mpl._cm.cubehelix(gamma, s, r, h)
+def cubehelix(gamma=1.0, s=0.5, r=-1.5, h=1.0):
+    """Return custom data dictionary of (r,g,b) conversion functions, which
+    can be used with :func:`register_cmap`, for the cubehelix color scheme.
+
+    Unlike most other color schemes cubehelix was designed by D.A. Green to
+    be monotonically increasing in terms of perceived brightness.
+    Also, when printed on a black and white postscript printer, the scheme
+    results in a greyscale with monotonically increasing brightness.
+    This color scheme is named cubehelix because the r,g,b values produced
+    can be visualised as a squashed helix around the diagonal in the
+    r,g,b color cube.
+
+    For a unit color cube (i.e. 3-D coordinates for r,g,b each in the
+    range 0 to 1) the color scheme starts at (r,g,b) = (0,0,0), i.e. black,
+    and finishes at (r,g,b) = (1,1,1), i.e. white. For some fraction *x*,
+    between 0 and 1, the color is the corresponding grey value at that
+    fraction along the black to white diagonal (x,x,x) plus a color
+    element. This color element is calculated in a plane of constant
+    perceived intensity and controlled by the following parameters.
+
+    Optional keyword arguments:
+
+      =========   =======================================================
+      Keyword     Description
+      =========   =======================================================
+      gamma       gamma factor to emphasise either low intensity values
+                  (gamma < 1), or high intensity values (gamma > 1);
+                  defaults to 1.0.
+      s           the start color; defaults to 0.5 (i.e. purple).
+      r           the number of r,g,b rotations in color that are made
+                  from the start to the end of the color scheme; defaults
+                  to -1.5 (i.e. -> B -> G -> R -> B).
+      h           the hue parameter which controls how saturated the
+                  colors are. If this parameter is zero then the color
+                  scheme is purely a greyscale; defaults to 1.0.
+      =========   =======================================================
+
+    """
+
+    def get_color_function(p0, p1):
+
+        def color(x):
+            # Apply gamma factor to emphasise low or high intensity values
+            xg = x ** gamma
+
+            # Calculate amplitude and angle of deviation from the black
+            # to white diagonal in the plane of constant
+            # perceived intensity.
+            a = h * xg * (1 - xg) / 2
+
+            phi = 2 * np.pi * (s / 3 + r * x)
+
+            return xg + a * (p0 * np.cos(phi) + p1 * np.sin(phi))
+        return color
+
+    return {
+            'red': get_color_function(-0.14861, 1.78277),
+            'green': get_color_function(-0.29227, -0.90649),
+            'blue': get_color_function(1.97294, 0.0),
+    }
+*/

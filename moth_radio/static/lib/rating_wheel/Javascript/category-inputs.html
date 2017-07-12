@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+</head>
+
+
+<body>
+<p id="display"></p>
+</body>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+
+var cDef = 5;
+var cMax = 8;
+var catNames = [];
+var catColors = [];
+
+var c = cDef;
+
+var divCont = d3.select("body").append("div");
+drawInputs();
+
+function drawInputs()
+{
+	for (var i = 0; i < c; i++)
+	{
+		addRow(i);
+	}
+
+	divCont.append("xhtml:span")
+		.attr("class", "glyphicon glyphicon-ok-sign")
+		.on("click", saveAll);
+}
+
+function addRow(inputNum)
+{
+	var newDiv = divCont.append("div")
+		.attr("id", "entry-"+inputNum);
+
+	var nextLabel = "";
+	if (catNames[inputNum] == null)
+	{
+		nextLabel = "Category " + (inputNum + 1);
+	}
+	else
+	{
+		nextLabel = catNames[inputNum];
+	}
+
+	newDiv.append("input")
+		.attr("type", "text")
+		.attr("value", nextLabel)
+		.classed("name", true);
+
+	if (inputNum == c - 1)
+	{
+		if (c != cMax)
+		{
+			newDiv.append("xhtml:span")
+			.attr("class", "glyphicon glyphicon-plus-sign")
+			.on("click", addNew);
+		}
+	}
+	else
+	{
+		newDiv.append("xhtml:span")
+		.attr("class", "glyphicon glyphicon-minus-sign")
+		.on("click", deleteThis);
+	}
+
+	newDiv.append("p");
+}
+
+function updateIDNumbers(delLoc)
+{
+	//takes in numeric index in catNames where an entry was deleted
+
+	divCont.selectAll("div").each(function()
+		{
+			var fullID = d3.select(this).attr("id");
+			var numID = -1; 
+			// if div has no id (thus does not contain an entry) will never go to if
+			
+			if (fullID != null)
+			{
+				numID = parseInt(fullID.substring(fullID.indexOf("-") + 1, fullID.length));
+			}
+			
+			if (numID > delLoc)
+			{
+				var newID = fullID.substring(0, fullID.indexOf("-")) + "-" + (numID - 1);
+				d3.select(this).attr("id", newID);
+			}
+		});
+
+	if (c == cMax - 1)
+	{
+		//last entry was the maximum, before this update)
+		var lastDiv = divCont.selectAll("div").filter(function()
+			{
+				var fullID = d3.select(this).attr("id");
+				var numID = -1; 
+				// if div has no id (thus does not contain an entry) will never go to if		
+				if (fullID != null)
+				{
+					numID = parseInt(fullID.substring(fullID.indexOf("-") + 1, fullID.length));
+				}
+
+				return numID == c - 1;
+			});
+
+		var lastDivSpans = lastDiv.selectAll("span").size();
+		if (lastDivSpans == 0)
+		{
+			lastDiv.selectAll("p").remove();
+
+			lastDiv.append("xhtml:span")
+			.attr("class", "glyphicon glyphicon-plus-sign")
+			.on("click", addNew);
+
+			lastDiv.append("p");
+		}
+
+	}
+}
+
+
+function addNew()
+{
+
+	var existingPlus = divCont.selectAll("span")
+		.filter(function()
+			{
+				return d3.select(this).attr("class") == "glyphicon glyphicon-plus-sign";
+			});
+	existingPlus
+		.attr("class", "glyphicon glyphicon-minus-sign")
+		.on("click", deleteThis);
+
+	c++;
+	addRow(c-1);
+
+	divCont.selectAll("span")
+		.filter(function()
+			{
+				return d3.select(this).attr("class") == "glyphicon glyphicon-ok-sign";
+			})
+		.remove();
+
+	divCont.append("xhtml:span")
+		.attr("class", "glyphicon glyphicon-ok-sign")
+		.on("click", saveAll);
+}
+
+function deleteThis()
+{
+
+	saveAll();
+
+	var fullID = d3.select(this.parentNode).attr("id");
+	var numID = parseInt(fullID.substring(fullID.indexOf("-") + 1, fullID.length));
+
+	var idToFind = "entry-" + numID;
+
+	var divToDel = divCont.selectAll("div").filter(function()
+		{
+			return d3.select(this).attr("id") == idToFind;
+		});
+
+	divToDel.remove();
+	catNames.splice(numID, 1);
+	c -= 1;
+
+	updateIDNumbers(numID);
+}
+
+function printSaves() //TODO debugging functionality only
+{
+	var textToDisplay = "Values saved as: <br>";
+
+	for (var i = 0; i < catNames.length; i++)
+	{
+		textToDisplay += "Entry " + i + ", value: " + catNames[i] + "<br>";
+	}
+
+	document.getElementById("display").innerHTML = textToDisplay;
+
+}
+
+function saveAll()
+{
+	var allEntryDivs = divCont.selectAll("div").filter(function()
+		{
+			return d3.select(this).attr("id") != null;
+		});
+
+	var allTextBoxes = allEntryDivs.selectAll("input").filter(function()
+		{
+			return d3.select(this).classed("name");
+		});
+
+	catNames = [];
+	allTextBoxes.each(function(i)
+		{
+			catNames.push(d3.select(this).node().value);
+		});
+}
+</script>

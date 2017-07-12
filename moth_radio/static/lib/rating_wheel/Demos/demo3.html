@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<p id="display"></p>
+<svg></svg>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+
+var bigR = 360; // radius of entire plot
+var c = 6; // number of emotion categories
+var t = 3; // number of intensity levels per category PLUS 1 //TODO is it plus or minus?
+var p = 0.75; // proportion of (circle area / next biggest circle area)
+var g = 0.01; // gap between category sectors as [(gap size) / (circle size * c)]
+var s = 25; // space between same intensity levels (in pixels)
+var q = 0.25; // percentage larger (or if negative, smaller) than outside radius that center is
+var fSize = 19; // size of font for text labels
+
+var fontFam = "impact"; // CSS standard font family choice for text labels
+var fontSize = 24; // default font size for text labels
+var preciR = 0.05; // precision (radius): increments of percentage to decrease radius while checking overlap
+var preciS = 0.05; // precision (spacing): increments of percentage to decrease space while checking over-spacing
+var spacePad = 0.1; // when checking over-spacing, allowable percentage/amount of extra space (i.e., s * spacePad)
+var expFactor = 1.2; // exponential scaling factor, where each r = 2 * r * p^(l*expFactor)
+
+// array [of arrays of size 2] of size c, such that index 0=category name and 1=category color
+// ex. [[name0, color0], [name1, color1], [name2, color2]]
+var catInfo = [
+	["appropriate", "#E80066"],
+	["interesting", "#ED2C70"],
+	["articulate", "#F79087"],
+	["supported", "#ffdd99"],
+	["relevant", "#FCBC91"],
+	["entertaining", "#F1587A"],
+];
+
+var summa1 = 0;
+for (i = 0; i < t+1; i++)
+{
+	summa1 += 2 * Math.pow(p, i);
+}
+var r = ((bigR - (s*t) - s) / (summa1 + (1+q)));
+
+function distance(x1, y1, x2, y2)
+// finds distance between points (x1, y1) and (x2, y2)
+{
+	var underRadical = Math.pow((x2-x1), 2) + Math.pow((y2-y1), 2);
+	return Math.pow(underRadical, 0.5);
+}
+function checkOverlap(dist, layer, inc)
+{
+	var origRad = r * Math.pow(p, layer*expFactor);
+	var multiplier = 1 - (inc * preciR);
+
+	var layerCircum = 0;
+	if (layer == 0)
+	{
+		layerCircum = 2 * Math.PI * (bigR - r);
+	}
+	else
+	{
+		layerCircum = 2 * Math.PI * (bigR - summa2(layer) - r);
+	}
+	var gap = g * layerCircum;
+	var needSpace = (2 * origRad * multiplier) + gap;
+
+	if (dist >= needSpace)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+function checkSpacing(dist, layer, inc)
+{
+	var outerRad = r * Math.pow(r, layer);
+	var innerRad = r * Math.pow(r, layer+1);
+	var maxSpace = outerRad + (s * (1+spacePad)) + innerRad;
+
+	var distScale = dist * (1 - (inc*preciS));
+
+	if (distScale <= maxSpace)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+function summa2(l)
+// finds summation, from i = 0 to i = l, of 2*r*p^i; plus s * (l-1); plus p^(l-1)
+{
+	var result = 0;
+	for (var k = 0; k < l+1; k++)
+	{
+		var term = 2 * r * Math.pow(p, k);
+		result += term;
+	}
+	result += s * (l-1);
+	result += Math.pow(p, l-1);
+	return result;
+}
+
+// initialize list with manually set scale variables
+var manSclRad = [];
+var manSclSpc = [];
+
+// test distances to check over-spacing
+for (var i = 0; i < t+1; i++)
+{
+	var outRad = r * Math.pow(p, i*expFactor);
+	var inRad = r * Math.pow(p, (i+1)*expFactor);
+	var outZ = summa2(i) + r;
+		if (i == 0) { outZ = r + s; } //TODO "plus s"?
+	var inZ = summa2(i+1) + r;
+	
+	var trigVal = (2 * Math.PI) / c;
+	outX = (bigR - outZ) * Math.cos(trigVal);
+	outY = (bigR - outZ) * Math.sin(trigVal);
+	inX = (bigR - inZ) * Math.cos(trigVal);
+	inY = (bigR - inZ) * Math.sin(trigVal)
+
+	var increments = 0;
+	var condition = true;
+	while (condition)
+	{
+		var eval = checkSpacing(distance(outX, outY, inX, inY), i, increments);
+		if (eval)
+		{
+			condition = false;
+		}
+		else
+		{
+			increments++;
+		}
+	}
+	manSclSpc[i] = 1 - (increments * preciS);
+}
+
+// test distances to check overlapping
+for (var i = 0; i < t+1; i++)
+{
+	var origRad = r * Math.pow(p, i*expFactor);
+	var z = summa2(i) + r;
+		if (i == 0) { z = r + s; } //TODO "plus s"?
+	var x1 = (bigR - z) * manSclSpc[i];
+	var y1 = 0;
+	var trigVal = (2 * Math.PI) / c;
+	var x2 = (bigR - z) * Math.cos(trigVal) * manSclSpc[i];
+	var y2 = (bigR - z) * Math.sin(trigVal) * manSclSpc[i];
+
+	var increments = 0;
+	var condition = true;
+	while(condition)
+	{
+		var dist = distance(x1, y1, x2, y2);
+		var eval = checkOverlap(distance(x1, y1, x2, y2), i, increments);
+		if (eval)
+		{
+			condition = false;
+		}
+		else
+		{
+			increments++;
+		}
+	}
+	manSclRad[i] = 1 - (increments * preciR);
+}
+
+var allPoints = []; // array of arrays, where each entry is a point such that indexes 0=radius, 1=x pos, 2=y pos, 3=cat, 4=intens
+var textPos = []; // array of arrays that stores coordinates for each category name textbook as [x, y]
+var justOuter = []; // array of arrays, where each entry is a point such that index 0=radius, 1=x pos, 2=y pos, 3=start theta, 4=end theta, 5=cat
+
+for (var n = 0; n < c; n++)
+{
+	var trigVal = ((2 * Math.PI) / c) * n;
+	var trigValNext = ((2 * Math.PI) / c) * (n+1);
+
+	//TODO definitely overhaul this section
+	var textX = ((bigR + s) * Math.cos(trigVal) * manSclSpc[0]) + bigR;
+	var textY = ((bigR + s) * Math.sin(trigVal) * manSclSpc[0]) + bigR;
+
+	if (textX < 0) {textX = 0; }
+	if (textY < 0) {textY = 0; }
+	textPos.push([textX, textY]);
+
+	for (var l = 0; l < t+1; l++)
+	{
+		var radius = r * Math.pow(p, l*expFactor) * manSclRad[l];
+		var z = summa2(l) + r;
+			if (l == 0) { z = r + s; }
+		var x = ((bigR - z) * Math.cos(trigVal) * manSclSpc[l]) + bigR;
+		var y = ((bigR - z) * Math.sin(trigVal) * manSclSpc[l]) + bigR;
+
+		if (l == 0) { justOuter.push([radius, x, y, (trigVal * (180 / Math.PI)), (trigValNext * (180 / Math.PI)), n]); }
+		allPoints.push([radius, x, y, n, l]);
+	}
+}
+
+// building JSON object construction string
+var jsonText = '{ "entries" : [';
+for (var iter = 0; iter < justOuter.length; iter++)
+{
+	var toAdd = '{ "radius":' + justOuter[iter][0];
+	toAdd += ' , "x_pos":' + justOuter[iter][1];
+	toAdd += ' , "y_pos":' + justOuter[iter][2];
+	toAdd += ' , "start":' + justOuter[iter][3];
+	toAdd += ' , "end":' + justOuter[iter][4];
+	toAdd += ' , "cat":' + justOuter[iter][5];
+	if (iter == justOuter.length - 1)
+	{
+		toAdd += "} ";
+	}
+	else
+	{
+		toAdd += '}, ';
+	}
+	jsonText += toAdd;
+}
+jsonText += ']}';
+
+var jsonObj = JSON.parse(jsonText);
+var outerJSON = jsonObj.entries;
+
+var svgContainer = d3.select("body").append("svg");
+	//.attr("width", (bigR * 2) + r + 3*s).attr("height", (bigR * 2) + r + 3*s); //TODO reconsider "artificial" 3s (find real value)
+
+var texts = svgContainer.append("g")
+	.selectAll("text")
+	.data(textPos)
+	.enter().append("text");
+var textsAtt = texts
+	.text(function (d, i) {
+		return catInfo[i][0]; })
+	.attr("x", function (d, i) { 
+		return d[0];})
+	.attr("y", function (d) { return d[1]; })
+	.style("fill", "black")
+	.style("font-family", fontFam)
+	.style("font-size", fSize);
+
+// adjust graph to suit text
+var maxTextHeight = 0;
+var maxTextWidth = 0;
+texts.each(function() 
+{
+    if (this.getBBox().height > maxTextHeight)
+    {
+    	maxTextHeight = this.getBBox().height;
+    }
+    if (this.getBBox().width > maxTextWidth)
+    {
+    	maxTextWidth = this.getBBox().width;
+    }
+});
+
+var svgContainerTransform = svgContainer.
+	attr("width", (bigR * 2) + r + 3*maxTextWidth).
+	attr("height", (bigR * 2) + r + 3*maxTextHeight);
+
+var fourthOfCats = Math.round((c+1)/4);
+var textsTransform = texts
+	.attr("x", function(d, i) {
+		var thisWidth = this.getBBox().width / 2;
+		if (i > fourthOfCats && i < c - fourthOfCats)
+		{
+			var difference = -thisWidth + maxTextWidth/2;
+			return d[0] + difference;
+		}
+		else if (i != fourthOfCats && i != c - fourthOfCats)
+		{
+			var summed = thisWidth + maxTextWidth/2;
+			return d[0] + summed;
+		}
+		else
+		{
+			return d[0] + (maxTextWidth*0.75 - thisWidth);
+		}
+	})
+	.attr("y", function(d, i) {
+		return d[1] + maxTextHeight;
+	});
+
+// transparent large circle that indicates extent of total graph/wheel
+var outlineCenterX = bigR + (maxTextWidth*0.75);
+var outlineCenterY = bigR + maxTextHeight;
+
+// create gradients for each category
+var centralColor = "#F46E80"; //TODO customizable?
+var gradients = svgContainer.append("defs");
+
+for (var i = 0; i < c; i++)
+{
+	var colorName = "coloration-" + i; //gradient going from main color to central color
+
+	//coloration
+	var coloration = gradients.append("radialGradient")
+		.attr("id", colorName)
+		.attr("cx", "50%")
+		.attr("fx", "50%")
+		.attr("cy", "50%")
+		.attr("fy", "50%")
+		.attr("r", "45%")
+		.attr("spreadMethod", "pad");
+	coloration.append("stop")
+		.attr("offset", "0%")
+		.attr("stop-color", centralColor)
+		.attr("stop-opacity", 1);
+	coloration.append("stop")
+		.attr("offset", "100%")
+		.attr("stop-color", catInfo[i][1])
+		.attr("stop-opacity", 1);
+}
+
+// draw arcs representing each category's sector, for on-hover use
+var rotRad = Math.PI / 2; // rotation (in rad) beyond default d3 arc function
+var arcClipsFull = svgContainer.append("defs")
+	.selectAll("clipPath")
+	.data(outerJSON).enter()
+	.append("clipPath")
+	.attr("id", function(d, i)
+		{
+			return "clip-full-" + i;
+		});
+arcClipsFull.each(function(d, i)
+{
+	var thisClip = d3.select(this);
+	
+	var fullArc = d.end - d.start;
+	var newStart = d.start - (fullArc/2);
+	var newEnd = d.end - (fullArc/2);
+	newStart *= (Math.PI / 180);
+	newEnd *= (Math.PI / 180);
+
+	var newArc = d3.arc()
+		.innerRadius(0)
+		.outerRadius(bigR - r)
+	   	.startAngle(newStart + rotRad)
+    	.endAngle(newEnd + rotRad);
+
+    var thisArc = thisClip.append("path")
+    	.attr("d", newArc());
+});
+var transString = "translate(" + (bigR + (maxTextWidth*0.75)) + "," + (bigR + maxTextHeight) + ")";
+arcClipsFull.attr("transform", transString);
+
+var ratingArcs = svgContainer.append("g");
+
+var arcColors = ratingArcs
+	.selectAll("circle")
+	.data(outerJSON).enter()
+	.append("circle")
+	.attr("cx", outlineCenterX)
+	.attr("cy", outlineCenterY)
+	.attr("r", bigR)
+	.style("clip-path", function(d, i)
+		{
+			return "url(#clip-full-" + i + ")";
+		})
+	.style("fill", function(d, i)
+		{
+			return "url(#coloration-" + i + ")";
+		})
+	.style("fill-opacity", 1);
+
+var arcTrack = ratingArcs
+	.selectAll("path")
+	.data(outerJSON).enter()
+	.append("path")
+	.attr("d", function(d, i)
+		{
+		var fullArc = d.end - d.start;
+		var newStart = d.start - (fullArc/2);
+		var newEnd = d.end - (fullArc/2);
+		newStart *= (Math.PI / 180);
+		newEnd *= (Math.PI / 180);
+
+		var newArc = d3.arc()
+			.innerRadius(0)
+			.outerRadius(bigR + r)
+		   	.startAngle(newStart + rotRad)
+	    	.endAngle(newEnd + rotRad);
+
+	    return newArc();
+		})
+	.style("fill", "black")
+	.style("fill-opacity", 0)
+	.attr("transform", transString)
+	.on("mousedown", clickedTrack)
+	.on("mousemove", adjustIntensity)
+	.on("mouseup", resetActiveTrack);
+
+// mouse event handlers
+
+
+var activeCatTrack = -1;
+
+function adjustIntensity(d)
+{
+	var coords = d3.mouse(this);
+	var newR = distance(coords[0], coords[1], 0, 0);
+		if (newR > (bigR - r)) { newR == bigR - r; }
+
+	if (activeCatTrack != -1)
+	{
+		var circleCat = d3.selectAll("circle").filter(function(d)
+		{
+			return d.cat == activeCatTrack;
+		});
+		circleCat.attr("r", newR);
+	}
+}
+
+function clickedTrack(d, i)
+{
+ 	activeCatTrack = d.cat;
+}
+
+function resetActiveTrack()
+{
+	activeCatTrack =  -1;
+}
+
+function toHSL(rgbColor, satProp, briProp)
+{
+	// takes in a D3 rgb color object, with fields r, g, b
+	// takes in percentage darker/lighter compared to original saturation new color should be
+	// takes in percentage of original brightness new color should be 
+	var r = rgbColor.r;
+	var g = rgbColor.g;
+	var b = rgbColor.b;
+	r /= 255.0;
+	g /= 255.0;
+	b /= 255.0;
+	
+	var min = Math.min(r, g, b);
+	var max = Math.max(r, g, b);
+	
+	var l = (min + max) / 2;
+	
+	var s = 0.0;
+	if (l <= 0.5)
+	{
+		s = (max - min) / (max + min);
+	}
+	else
+	{
+		s = (max - min) / (2.0 - max - min);
+	}
+
+	var h = 0;
+	if (max == r)
+	{
+		h = ((g-b) / (max-min)) * 60;
+	}
+	else if (max == g)
+	{
+		h = (2.0 + (b-r)/(max-min)) * 60;
+	}
+	else // max == b
+	{
+		h = (4.0 + (r-g)/(max-min)) * 60;
+	}
+	
+	if (h < 0) { h += 360; }
+	
+	s *= satProp;
+	if (s < 0) { s = 0; }
+	else if (s > 1) {s = 1; }
+	
+	if (l <= 0.5) // change for darker colors
+		{ l *= (1 + briProp); }
+	else // change for lighter colors
+		{ l *= (1 - briProp); }
+
+	if (l < 0) { l = 0; }
+	else if (l > 1) { l = 1; }
+	
+	return d3.hsl(h, s, l);
+}
+
+// new geometry
+
+function slope(x1, y1, x2, y2)
+{
+	return (y2-y1) / (x2-x1);	
+}
+
+function findXPoints(m, x1, r)
+{
+	var underRoot = (m*m*r*r) + (2*m*m*x1*x1) + (r*r) + (2*x1*x1);
+	var root = Math.pow(underRoot, 0.5);
+	var toAdd = (m*m*x1) + x1;
+	var denom = (m*m) + 1;
+
+	var positive = (root + toAdd) / denom;
+	var negative = (-root + toAdd) / denom;
+
+	return [positive, negative];
+}
+
+function findYPoint(m, x1, y1, x2)
+{
+	return (m*(x2-x1)) + y1;
+}
+
+
+// new color mixing
+
+function mix(color1, color2)
+{
+	// takes two colors, in RYB form
+
+	// average color channels
+	var rAvg = (color1.r + color2.r) / 2;
+	var yAvg = (color1.y + color2.y) / 2;
+	var bAvg = (color1.b + color2.b) / 2;
+
+	// find average of each color's highest intensity
+	var iAvg = (Math.max(color1.r, color1.y, color1.b) + Math.max(color2.r, color2.y, color2.b)) / 2;
+
+	var multi = iAvg / Math.max(rAvg, yAvg, bAvg);
+
+	var newColor = [];
+	newColor["r"] = Math.floor(rAvg * multi);
+	newColor["y"] = Math.floor(yAvg * multi);
+	newColor["b"] = Math.floor(bAvg * multi);
+	return newColor;	
+}
+
+function rgbToRyb(color)
+{
+	// takes one color, in form d3.color(this_color)
+	// code by Joshua Gentry (deathbysoftware.com)
+	// from the Python by Arah Leonard (insanit.net)
+
+	var white = Math.min(color.r, color.g, color.b);
+
+	// remove white
+	var rAdj = color.r - white;
+	var gAdj = color.g - white;
+	var bAdj = color.b - white;
+
+	// find max green
+	var gMax = Math.max(rAdj, gAdj, bAdj);
+
+	// find yellow in red/green
+	var yellow = Math.min(rAdj, gAdj);
+	rAdj -= yellow;
+	gAdj -= yellow;
+
+	// adjust blue/green if needed
+	if (bAdj > 0 && gAdj > 0)
+	{
+		bAdj /= 2;
+		gAdj /= 2;
+	}
+
+	// redistribute green
+	var yAdj = yellow + gAdj;
+	bAdj += gAdj;
+
+	// normalize
+	var yMax = Math.max(rAdj, yAdj, bAdj);
+	if (yMax > 0)
+	{
+		rAdj *= (gMax / yMax);
+		yAdj *= (gMax / yMax);
+		bAdj *= (gMax / yMax);
+	}
+		
+	// add white back
+	rAdj += white;
+	yAdj += white;
+	bAdj += white;
+		
+	var newColor = [];
+	newColor["r"] = Math.floor(rAdj);
+	newColor["y"] = Math.floor(yAdj);
+	newColor["b"] = Math.floor(bAdj);
+	return newColor;
+}
+
+function rybToRgb(color)
+{
+	// takes one color, in RYB form
+	// code by Joshua Gentry (deathbysoftware.com)
+	// from the Python by Arah Leonard (insanit.net)
+
+	// remove white
+	var white = Math.min(color.r, color.y, color.b);
+	var rAdj = color.r - white;
+	var yAdj = color.y - white;
+	var bAdj = color.b - white;
+
+	// find max yellow
+	var yMax = Math.max(rAdj, yAdj, bAdj);
+
+	// find and remove green in yellow/blue
+	var gAdj = Math.min(yAdj, bAdj);
+	yAdj -= gAdj;
+	bAdj -= gAdj;
+
+	// adjust blue/green if needed
+	if (bAdj > 0 && gAdj > 0)
+	{
+		bAdj *= 2.0;
+		gAdj *= 2.0;
+	}
+
+	// redistribute yellow
+	rAdj += yAdj;
+	gAdj += yAdj;
+
+	// normalize
+	var gMax = Math.max(rAdj, gAdj, bAdj);
+
+	if (gMax > 0)
+	{
+		rAdj *= (yMax / gMax);
+		gAdj *= (yMax / gMax);
+		bAdj *= (yMax / gMax);
+	}
+
+	// add white back
+	rAdj += white;
+	gAdj += white;
+	bAdj += white;
+
+	return d3.rgb(Math.floor(rAdj), Math.floor(gAdj), Math.floor(bAdj));
+}
+
+</script>

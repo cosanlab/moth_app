@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.chart div {
+  font: 10px sans-serif;
+  background-color: steelblue;
+  text-align: right;
+  padding: 3px;
+  margin: 1px;
+  color: white;
+}
+
+</style>
+<body>
+<div id="rating_wheel"></div>
+</body>
+
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="ratingwheel.js"></script>
+<script>
+
+var colors = [
+	["red"],
+	["pink"],
+	["salmon"],
+	["yellow"],
+	["gold"],
+	["greenyellow"],
+	["forestgreen"],
+	["green"],
+	["aquamarine"],
+	["darkturquoise"],
+	["deepskyblue"],
+	["blue"],
+	["darkslateblue"],
+	["darkviolet"],
+	["mediumpurple"],
+	["violet"]
+];
+var names = [
+	["anger"],
+	["pride"],
+	["elation"],
+	["something"],
+	["satisfaction"],
+	["relief"],
+	["hope"],
+	["interest"],
+	["joy"],
+	["sadness"],
+	["fear"],
+	["shame"],
+	["loathing"],
+	["envy"],
+	["disgust"],
+	["contempt"]
+];
+var fontInfo = rating_wheel.etc.font(19, "impact");
+var catInfo = rating_wheel.etc.categories(names, colors);
+
+var firstWheel = rating_wheel.continuous.wheel(360, 16, 25, fontInfo, catInfo);
+ 
+rating_wheel.render.go(firstWheel);
+
+</script>

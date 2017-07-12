@@ -1,0 +1,38 @@
+RATING_WHEEL NAMESPACE
+
+Discrete
+	*Wheel: creates wheel object, value labeled as discrete
+	Render: calls Render -> Discrete
+	Set: setting functions
+		Hover: set hover effect
+		Select: set select effect
+		Numoptions: how many categories can be rated, or “max” (will find max number of categories)
+
+Continuous
+	*Wheel: creates wheel object, value labeled as continuous
+	Render: calls Render -> Continuous
+	Set: setting functions
+		Shape: doughnut vs. pie
+		*Select: click/hold to select, release to commit; click to commit
+		*Preview: true (black circle indicates where mouse is hovering on this category relative to other categories) vs. false
+		Guides: true (dotted black lines extend out from sectors) vs. false
+		Center: true (white circle in center at 60% of minimum size) vs. false
+		Minsize: determine the percentage of the overall circle that defines soft 0; no category can be dragged smaller than this
+		Gradient: true (sectors are gradients, not solids) vs. false
+		Glow: determine the color that the gradient is blended with towards the center
+		Numoptions: how many categories can be rated, or “max” (will find max number of categories)
+
+Render [done except adding hover effects conditionally, mouse events, etc]
+	*Go: renders passed wheel object (drawing on type variable to determine style)
+	*Discrete: renders passed wheel object always as discrete
+		-throw error if not enough info (i.e. is continuous object)
+	*Continuous: renders passed wheel object always as continuous
+	*Finddiv: find the div where the rating wheel is supposed to go
+		-by default is set to div with id “rating_wheel”
+
+Math: various math functions
+
+Etc.: all else
+	Font: converts passed values (“name,” “size”) into an array usable by wheel object constructors
+	Categories: converts passed values (array of colors, array of names) into an array usable by wheel object constructors
+	Checkcolor: determines if passed string is indeed a valid color and converts to hex code; returns black if not available

@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.chart div {
+  font: 10px sans-serif;
+  background-color: steelblue;
+  text-align: right;
+  padding: 3px;
+  margin: 1px;
+  color: white;
+}
+
+</style>
+<body>
+	bigR: <input type="range" min="100" max="1000" step="10" id="sBigR">
+	cats: <input type="range" min="3" max="20" step ="1" id="sCategories"> <!-- TODO: temporary limit of 20, change back to 32(?) -->
+	intens: <input type="range" min="0" max="9" step = "1" id="sIntensities">
+	prop: <input type="range" min="0.01" max="0.99" step = "0.02" id="sProportion">
+	<br>
+	gap: <input type="range" min="0.005" max="0.05" step = "0.005" id="sGap">
+	space: <input type="range" min="0" max="150" step = "1" id="sSpace">
+	center: <input type="range" min="-0.9" max="0.9" step="0.05" id="sCenter">
+	<br>
+	<div id="catInputs"></div>
+	<svg></svg>
+</body>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+
+// default values
+var bigRDef = 360; // radius of entire plot
+var cDef = 16; // number of emotion categories
+var tDef = 3; // number of intensity levels per category PLUS 1 //TODO is it plus or minus?
+var pDef = 0.75; // proportion of (circle area / next biggest circle area)
+var gDef = 0.01; // gap between category sectors as [(gap size) / (circle size * c)]
+var sDef = 25; // space between same intensity levels (in pixels)
+var qDef = 0.25; // percentage larger (or if negative, smaller) than outside radius that center is
+// setting default values
+document.getElementById("sBigR").value = bigRDef;
+document.getElementById("sCategories").value = cDef;
+document.getElementById("sIntensities").value = tDef;
+document.getElementById("sProportion").value = pDef;
+document.getElementById("sGap").value = gDef;
+document.getElementById("sSpace").value = sDef;
+document.getElementById("sCenter").value = qDef;
+
+
+var fontFam = "impact"; // CSS standard font family choice for text labels
+var preciR = 0.05; // precision (radius): increments of percentage to decrease radius while checking overlap
+var preciS = 0.05; // precision (spacing): increments of percentage to decrease space while checking over-spacing
+var spacePad = 0.1; // when checking over-spacing, allowable percentage/amount of extra space (i.e., s * spacePad)
+var expFactor = 1.2; // exponential scaling factor, where each r = 2 * r * p^(l*expFactor)
+
+// array [of arrays of size 2] of size c, such that index 0=category name and 1=category color
+// ex. [[name0, color0], [name1, color1], [name2, color2]]
+var catInfo = [
+	["anger","red"], //0
+	["pride","pink"], //1
+	["elation","salmon"], //2
+	["hippopotamus","yellow"], //3
+	["satisfaction","gold"], //4
+	["relief","greenyellow"], //5
+	["hope","forestgreen"], //6
+	["interest","green"], //7
+	["joy","aquamarine"], //8
+	["sadness","darkturquoise"], //9
+	["fear","deepskyblue"], //10
+	["shame","blue"], //11
+	["lengthy category name","darkslateblue"], //12
+	["envy","darkviolet"], //13
+	["disgust","mediumpurple"], //14
+	["contempt","violet"], //15
+	["fee","violet"], //16
+	["fi","violet"], //17
+	["fo","violet"], //18
+	["fum","violet"], //19
+];
+
+var svgContainer = d3.select("body").append("svg");
+function drawWheel(bigR, c, t, p, g, s, q)
+{
+	var summa1 = 0;
+	for (i = 0; i < t+1; i++)
+	{
+		summa1 += 2 * Math.pow(p, i);
+	}
+	var r = ((bigR - (s*t) - s) / (summa1 + (1+q)));
+
+	function distance(x1, y1, x2, y2)
+	// finds distance between points (x1, y1) and (x2, y2)
+	{
+		var underRadical = Math.pow((x2-x1), 2) + Math.pow((y2-y1), 2);
+		return Math.pow(underRadical, 0.5);
+	}
+	function checkOverlap(dist, layer, inc)
+	{
+		var origRad = r * Math.pow(p, layer*expFactor);
+		var multiplier = 1 - (inc * preciR);
+
+		var layerCircum = 0;
+		if (layer == 0)
+		{
+			layerCircum = 2 * Math.PI * (bigR - r);
+		}
+		else
+		{
+			layerCircum = 2 * Math.PI * (bigR - summa2(layer) - r);
+		}
+		var gap = g * layerCircum;
+		var needSpace = (2 * origRad * multiplier) + gap;
+
+		if (dist >= needSpace)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	function checkSpacing(dist, layer, inc)
+	{
+		var outerRad = r * Math.pow(r, layer);
+		var innerRad = r * Math.pow(r, layer+1);
+		var maxSpace = outerRad + (s * (1+spacePad)) + innerRad;
+
+		var distScale = dist * (1 - (inc*preciS));
+
+		if (distScale <= maxSpace)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	function summa2(l)
+	// finds summation, from i = 0 to i = l, of 2*r*p^i; plus s * (l-1); plus p^(l-1)
+	{
+		var result = 0;
+		for (var k = 0; k < l+1; k++)
+		{
+			var term = 2 * r * Math.pow(p, k);
+			result += term;
+		}
+		result += s * (l-1);
+		result += Math.pow(p, l-1);
+		return result;
+	}
+
+	// initialize list with manually set scale variables
+	var manSclRad = [];
+	var manSclSpc = [];
+
+	// test distances to check over-spacing
+	for (var i = 0; i < t+1; i++)
+	{
+		var outRad = r * Math.pow(p, i*expFactor);
+		var inRad = r * Math.pow(p, (i+1)*expFactor);
+		var outZ = summa2(i) + r;
+			if (i == 0) { outZ = r + s; } //TODO "plus s"?
+		var inZ = summa2(i+1) + r;
+		
+		var trigVal = (2 * Math.PI) / c;
+		var outX = (bigR - outZ) * Math.cos(trigVal);
+		var outY = (bigR - outZ) * Math.sin(trigVal);
+		var inX = (bigR - inZ) * Math.cos(trigVal);
+		var inY = (bigR - inZ) * Math.sin(trigVal)
+
+		var increments = 0;
+		var condition = true;
+		while (condition)
+		{
+			var eval = checkSpacing(distance(outX, outY, inX, inY), i, increments);
+			if (eval)
+			{
+				condition = false;
+			}
+			else
+			{
+				increments++;
+			}
+		}
+		manSclSpc[i] = 1 - (increments * preciS);
+	}
+
+	// test distances to check overlapping
+	for (var i = 0; i < t+1; i++)
+	{
+		var origRad = r * Math.pow(p, i*expFactor);
+		var z = summa2(i) + r;
+			if (i == 0) { z = r + s; } //TODO "plus s"?
+		var x1 = (bigR - z) * manSclSpc[i];
+		var y1 = 0;
+		var trigVal = (2 * Math.PI) / c;
+		var x2 = (bigR - z) * Math.cos(trigVal) * manSclSpc[i];
+		var y2 = (bigR - z) * Math.sin(trigVal) * manSclSpc[i];
+
+		var increments = 0;
+		var condition = true;
+		while(condition)
+		{
+			var dist = distance(x1, y1, x2, y2);
+			var eval = checkOverlap(distance(x1, y1, x2, y2), i, increments);
+			if (eval)
+			{
+				condition = false;
+			}
+			else
+			{
+				increments++;
+			}
+		}
+		manSclRad[i] = 1 - (increments * preciR);
+	}
+
+	var allPoints = []; // list of lists, where each entry is a point such that indexes 0=radius, 1=x pos, 2=y pos, 3=cat, 4=intens
+	var textPos = []; // array of arrays that stores coordinates for each category name textbook as [x, y]
+	for (var n = 0; n < c; n++)
+	{
+		var trigVal = ((2 * Math.PI) / c) * n;
+
+		//TODO definitely overhaul this section
+		var textX = ((bigR + s) * Math.cos(trigVal) * manSclSpc[0]) + bigR;
+		var textY = ((bigR + s) * Math.sin(trigVal) * manSclSpc[0]) + bigR;
+
+		if (textX < 0) {textX = 0; }
+		if (textY < 0) {textY = 0; }
+		textPos.push([textX, textY]);
+
+		for (var l = 0; l < t+1; l++)
+		{
+			var radius = r * Math.pow(p, l*expFactor) * manSclRad[l];
+			var z = summa2(l) + r;
+				if (l == 0) { z = r + s; }
+			var x = ((bigR - z) * Math.cos(trigVal) * manSclSpc[l]) + bigR;
+			var y = ((bigR - z) * Math.sin(trigVal) * manSclSpc[l]) + bigR;
+
+			allPoints.push([radius, x, y, n, l]);
+		}
+	}
+
+	// building JSON object construction string
+	var jsonText = '{ "entries" : [';
+	for (var iter = 0; iter < allPoints.length; iter++)
+	{
+		var toAdd = '{ "radius":' + allPoints[iter][0];
+		toAdd += ' , "x_pos":' + allPoints[iter][1];
+		toAdd += ' , "y_pos":' + allPoints[iter][2];
+		toAdd += ' , "cat":' + allPoints[iter][3];
+		toAdd += ' , "intens":' + allPoints[iter][4];
+		if (iter == allPoints.length - 1)
+		{
+			toAdd += "} ";
+		}
+		else
+		{
+			toAdd += '}, ';
+		}
+		jsonText += toAdd;
+	}
+	jsonText += ']}';
+
+	var jsonObj = JSON.parse(jsonText);
+	var jsonData = jsonObj.entries;
+
+	var circles = svgContainer.append("g")
+		.selectAll("circle")
+		.data(jsonData)
+		.enter().append("circle");
+	var circlesAtt = circles
+		.attr("cx", function (d) { return d.x_pos; })
+		.attr("cy", function (d) { return d.y_pos; })
+		.attr("r", function (d) { return d.radius; })
+		.style("fill", function (d) {
+			return catInfo[d.cat][1]; });
+	var texts = svgContainer.append("g")
+		.selectAll("text")
+		.data(textPos)
+		.enter().append("text");
+	var textsAtt = texts
+		.text(function (d, i) { 
+			return catInfo[i][0]; })
+		.attr("x", function (d, i) { 
+			return d[0];})
+		.attr("y", function (d) { return d[1]; })
+		.style("fill", "black")
+		.style("font-family", fontFam);
+
+	// adjust graph to suit text
+	var maxTextHeight = 0;
+	var maxTextWidth = 0;
+	texts.each(function() 
+	{
+	    if (this.getBBox().height > maxTextHeight)
+	    {
+	    	maxTextHeight = this.getBBox().height;
+	    }
+	    if (this.getBBox().width > maxTextWidth)
+	    {
+	    	maxTextWidth = this.getBBox().width;
+	    }
+	});
+
+	var svgContainerTransform = svgContainer.
+		attr("width", (bigR * 2) + r + 3*maxTextWidth).
+		attr("height", (bigR * 2) + r + 3*maxTextHeight);
+
+	var textsTransString = "translate(0," + maxTextHeight + ")"; 
+	var fourthOfCats = Math.round((c+1)/4);
+	var textsTransform = texts.
+		attr("transform", function(d, i) {
+			var thisWidth = this.getBBox().width / 2;
+			if (i > fourthOfCats && i < c - fourthOfCats)
+			{
+				// i = 5 to i = 11
+				var difference = -thisWidth + maxTextWidth/2;
+				//document.write("Applying left shift to " + catInfo[i][0] + "<br>");
+				return "translate(" + difference + "," + maxTextHeight + ")";	
+			}
+			else if (i != fourthOfCats && i != c - fourthOfCats)
+			{
+				// i != 3 and i != 11
+				var summed = thisWidth + maxTextWidth/2;
+				//document.write("Applying right shift to " + catInfo[i][0] + "<br>");
+				return "translate(" + summed + "," + maxTextHeight + ")";		
+			}
+			else
+			{
+				//document.write("Applying neutral shift to " + catInfo[i][0] + "<br>");
+				return "translate(" + (maxTextWidth*0.75 -thisWidth) + "," + maxTextHeight + ")";
+			}
+		});
+	var circlesTransString = "translate(" + maxTextWidth*0.75 + "," + maxTextHeight + ")";
+	var circlesTransform = circles.
+		attr("transform", circlesTransString);
+}
+
+// initial set up
+drawWheel(bigRDef, cDef, tDef, pDef, gDef, sDef, qDef);
+var catInputsTab = d3.select("#catInputs").append("table");
+
+var bigRCur = bigRDef;
+var cCur = cDef;
+var tCur = tDef;
+var pCur = pDef;
+var gCur = gDef;
+var sCur = sDef;
+var qCur = qDef;
+
+d3.select("#sBigR").on("input", function() { updateR(+this.value); });
+d3.select("#sCategories").on("input", function() { updateC(+this.value); });
+d3.select("#sIntensities").on("input", function() { updateT(+this.value); });
+d3.select("#sProportion").on("input", function() { updateP(+this.value); });
+d3.select("#sGap").on("input", function() { updateG(+this.value); });
+d3.select("#sSpace").on("input", function() { updateS(+this.value); });
+d3.select("#sCenter").on("input", function() { updateQ(+this.value); });
+
+function updateR(sBigR) { bigRCur = sBigR; 
+	updateAll(); }
+function updateC(sCategories) { cCur = sCategories;
+	updateAll(); }
+function updateT(sIntensities) { tCur = sIntensities; 
+	updateAll(); }
+function updateP(sProportion) { pCur = sProportion;
+	updateAll(); }
+function updateG(sGap) { gCur = sGap;
+	updateAll(); }
+function updateS(sSpace) { sCur = sSpace; 
+	updateAll(); }
+function updateQ(sCenter) { qCur = sCenter; 
+	updateAll(); }
+
+function updateAll()
+{
+	var bigR = bigRCur;
+	var c = cCur;
+	var t = tCur;
+	var p = pCur;
+	var g = gCur;
+	var s = sCur;
+	var q = qCur;
+	var summa1 = 0;
+	for (i = 0; i < t+1; i++)
+	{
+		summa1 += 2 * Math.pow(p, i);
+	}
+	var r = ((bigR - (s*t) - s) / (summa1 + (1+q)));
+
+	function distance(x1, y1, x2, y2)
+	// finds distance between points (x1, y1) and (x2, y2)
+	{
+		var underRadical = Math.pow((x2-x1), 2) + Math.pow((y2-y1), 2);
+		return Math.pow(underRadical, 0.5);
+	}
+	function checkOverlap(dist, layer, inc)
+	{
+		var origRad = r * Math.pow(p, layer*expFactor);
+		var multiplier = 1 - (inc * preciR);
+
+		var layerCircum = 0;
+		if (layer == 0)
+		{
+			layerCircum = 2 * Math.PI * (bigR - r);
+		}
+		else
+		{
+			layerCircum = 2 * Math.PI * (bigR - summa2(layer) - r);
+		}
+		var gap = g * layerCircum;
+		var needSpace = (2 * origRad * multiplier) + gap;
+
+		if (dist >= needSpace)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	function checkSpacing(dist, layer, inc)
+	{
+		var outerRad = r * Math.pow(r, layer);
+		var innerRad = r * Math.pow(r, layer+1);
+		var maxSpace = outerRad + (s * (1+spacePad)) + innerRad;
+
+		var distScale = dist * (1 - (inc*preciS));
+
+		if (distScale <= maxSpace)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	function summa2(l)
+	// finds summation, from i = 0 to i = l, of 2*r*p^i; plus s * (l-1); plus p^(l-1)
+	{
+		var result = 0;
+		for (var k = 0; k < l+1; k++)
+		{
+			var term = 2 * r * Math.pow(p, k);
+			result += term;
+		}
+		result += s * (l-1);
+		result += Math.pow(p, l-1);
+		return result;
+	}
+
+	// initialize list with manually set scale variables
+	var manSclRad = [];
+	var manSclSpc = [];
+
+	// test distances to check over-spacing
+	for (var i = 0; i < t+1; i++)
+	{
+		var outRad = r * Math.pow(p, i*expFactor);
+		var inRad = r * Math.pow(p, (i+1)*expFactor);
+		var outZ = summa2(i) + r;
+			if (i == 0) { outZ = r + s; } //TODO "plus s"?
+		var inZ = summa2(i+1) + r;
+		
+		var trigVal = (2 * Math.PI) / c;
+		outX = (bigR - outZ) * Math.cos(trigVal);
+		outY = (bigR - outZ) * Math.sin(trigVal);
+		inX = (bigR - inZ) * Math.cos(trigVal);
+		inY = (bigR - inZ) * Math.sin(trigVal)
+
+		var increments = 0;
+		var condition = true;
+		while (condition)
+		{
+			var eval = checkSpacing(distance(outX, outY, inX, inY), i, increments);
+			if (eval)
+			{
+				condition = false;
+			}
+			else
+			{
+				increments++;
+			}
+		}
+		manSclSpc[i] = 1 - (increments * preciS);
+	}
+
+	// test distances to check overlapping
+	for (var i = 0; i < t+1; i++)
+	{
+		var origRad = r * Math.pow(p, i*expFactor);
+		var z = summa2(i) + r;
+			if (i == 0) { z = r + s; } //TODO "plus s"?
+		var x1 = (bigR - z) * manSclSpc[i];
+		var y1 = 0;
+		var trigVal = (2 * Math.PI) / c;
+		var x2 = (bigR - z) * Math.cos(trigVal) * manSclSpc[i];
+		var y2 = (bigR - z) * Math.sin(trigVal) * manSclSpc[i];
+
+		var increments = 0;
+		var condition = true;
+		while(condition)
+		{
+			var dist = distance(x1, y1, x2, y2);
+			var eval = checkOverlap(distance(x1, y1, x2, y2), i, increments);
+			if (eval)
+			{
+				condition = false;
+			}
+			else
+			{
+				increments++;
+			}
+		}
+		manSclRad[i] = 1 - (increments * preciR);
+	}
+
+	var allPoints = []; // list of lists, where each entry is a point such that indexes 0=radius, 1=x pos, 2=y pos, 3=cat, 4=intens
+	var textPos = []; // array of arrays that stores coordinates for each category name textbook as [x, y]
+	for (var n = 0; n < c; n++)
+	{
+		var trigVal = ((2 * Math.PI) / c) * n;
+
+		//TODO definitely overhaul this section
+		var textX = ((bigR + s) * Math.cos(trigVal) * manSclSpc[0]) + bigR;
+		var textY = ((bigR + s) * Math.sin(trigVal) * manSclSpc[0]) + bigR;
+
+		if (textX < 0) {textX = 0; }
+		if (textY < 0) {textY = 0; }
+		textPos.push([textX, textY]);
+
+		for (var l = 0; l < t+1; l++)
+		{
+			var radius = r * Math.pow(p, l*expFactor) * manSclRad[l];
+			var z = summa2(l) + r;
+				if (l == 0) { z = r + s; }
+			var x = ((bigR - z) * Math.cos(trigVal) * manSclSpc[l]) + bigR;
+			var y = ((bigR - z) * Math.sin(trigVal) * manSclSpc[l]) + bigR;
+
+			allPoints.push([radius, x, y, n, l]);
+		}
+	}
+
+	// building JSON object construction string
+	var jsonText = '{ "entries" : [';
+	for (var iter = 0; iter < allPoints.length; iter++)
+	{
+		var toAdd = '{ "radius":' + allPoints[iter][0];
+		toAdd += ' , "x_pos":' + allPoints[iter][1];
+		toAdd += ' , "y_pos":' + allPoints[iter][2];
+		toAdd += ' , "cat":' + allPoints[iter][3];
+		toAdd += ' , "intens":' + allPoints[iter][4];
+		if (iter == allPoints.length - 1)
+		{
+			toAdd += "} ";
+		}
+		else
+		{
+			toAdd += '}, ';
+		}
+		jsonText += toAdd;
+	}
+	jsonText += ']}';
+
+	var jsonObj = JSON.parse(jsonText);
+	var jsonData = jsonObj.entries;
+
+	//delete no longer needed circles and texts
+	var circlesDelete = svgContainer.selectAll("circle")
+		.filter(function(d, i)
+			{
+				return i > allPoints.length - 1;
+			})
+		.remove();
+	var textsDelete = svgContainer.selectAll("text")
+		.filter(function(d, i)
+			{
+				return i > c - 1;
+			})
+		.remove();
+
+	//add in newly needed circles and texts
+	var circleCount = svgContainer.selectAll("circle").size();
+	for (var lmno = circleCount; lmno < allPoints.length; lmno++)
+	{
+		svgContainer.select("g").append("circle");
+	}
+	var textsCount = svgContainer.selectAll("text").size();
+	for (var xyz = textsCount; xyz < c; xyz++)
+	{
+		svgContainer.select("g").append("text");
+	}
+
+	//change existing circles
+	var circles = svgContainer.selectAll("circle").data(jsonData);
+	var circlesAtt = circles
+		.attr("cx", function (d) { return d.x_pos; })
+		.attr("cy", function (d) { return d.y_pos; })
+		.attr("r", function (d) { 
+			// verify that radii are non-negative to avoid crash
+			// if not non-negative, return arbitrary tiny number
+			if (d.radius > 0) { return d.radius; }
+			else { return 0.001; }})
+		.style("fill", function (d) { return catInfo[d.cat][1]; });
+
+	var texts = svgContainer.selectAll("text").data(textPos)
+		.text(function (d, i) { return catInfo[i][0]; })
+		.attr("x", function (d, i) { return d[0];})
+		.attr("y", function (d) { return d[1]; })
+		.style("fill", "black")
+		.style("font-family", fontFam);
+
+	// adjust graph to suit text
+	var maxTextHeight = 0;
+	var maxTextWidth = 0;
+	texts.each(function() 
+	{
+	    if (this.getBBox().height > maxTextHeight)
+	    {
+	    	maxTextHeight = this.getBBox().height;
+	    }
+	    if (this.getBBox().width > maxTextWidth)
+	    {
+	    	maxTextWidth = this.getBBox().width;
+	    }
+	});
+
+	var svgContainerTransform = svgContainer.
+		attr("width", (bigR * 2) + r + 3*maxTextWidth).
+		attr("height", (bigR * 2) + r + 3*maxTextHeight);
+
+	var textsTransString = "translate(0," + maxTextHeight + ")"; 
+	var fourthOfCats = Math.round((c+1)/4);
+	var textsTransform = texts.
+		attr("transform", function(d, i) {
+			var thisWidth = this.getBBox().width / 2;
+			if (i > fourthOfCats && i < c - fourthOfCats)
+			{
+				// i = 5 to i = 11
+				var difference = -thisWidth + maxTextWidth/2;
+				//document.write("Applying left shift to " + catInfo[i][0] + "<br>");
+				return "translate(" + difference + "," + maxTextHeight + ")";	
+			}
+			else if (i != fourthOfCats && i != c - fourthOfCats)
+			{
+				// i != 3 and i != 11
+				var summed = thisWidth + maxTextWidth/2;
+				//document.write("Applying right shift to " + catInfo[i][0] + "<br>");
+				return "translate(" + summed + "," + maxTextHeight + ")";		
+			}
+			else
+			{
+				//document.write("Applying neutral shift to " + catInfo[i][0] + "<br>");
+				return "translate(" + (maxTextWidth*0.75 -thisWidth) + "," + maxTextHeight + ")";
+			}
+		});
+	var circlesTransString = "translate(" + maxTextWidth*0.75 + "," + maxTextHeight + ")";
+	var circlesTransform = circles.
+		attr("transform", circlesTransString);
+}
+</script>

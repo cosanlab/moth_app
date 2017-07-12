@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+	<script src="ratingwheel.js"></script>
+	<script src="gui_validation.js"></script>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<script src="https://d3js.org/d3.v4.min.js"></script>
+	<!--<link href="Styles/StyleSheet1.css" rel="stylesheet" type="text/css" />-->
+</head>
+<style>
+.hideCSS  {
+    display:table-cell;
+    display:none;
+    z-index:0;
+}
+
+.showCSS {
+    display:inline;
+    z-index:200;
+}
+</style>
+<body>
+<div id="output"></div>
+<div class="container-fluid">
+	<div class="row">
+		<div class="col-sm-2">
+				<i>size</i>:
+					<a href="#" style="color: black; text-decoration: none;" title="size" data-toggle="popover" data-trigger="hover" data-content="
+						the radius of the entire plot
+					"><span class="glyphicon glyphicon-info-sign hideCSS"></span></a>
+					<input type="range" min="100" max="1000" step="10" id="sBigR">
+				<i>intensities</i>:
+					<a href="#" style="color: black; text-decoration: none;" title="intensities" data-toggle="popover" data-trigger="hover" data-content="
+						the number of levels displayed for each category
+					"><span class="glyphicon glyphicon-info-sign hideCSS"></span></a>
+					<input type="range" min="0" max="9" step = "1" id="sIntensities">
+				<i>proportion</i>:
+					<a href="#" style="color: black; text-decoration: none;" title="proportion" data-toggle="popover" data-trigger="hover" data-content="
+						the ratio of one intensity level's area to the next level's area; higher numbers create less difference in intensity level sizes
+					"><span class="glyphicon glyphicon-info-sign hideCSS"></span></a>
+					<input type="range" min="0.01" max="0.99" step = "0.02" id="sProportion">
+				<i>gap</i>:
+					<a href="#" style="color: black; text-decoration: none;" title="gap" data-toggle="popover" data-trigger="hover" data-content="
+						the spacing between categories
+					"><span class="glyphicon glyphicon-info-sign hideCSS"></span></a>
+					<input type="range" min="0.005" max="0.05" step = "0.005" id="sGap">
+				<i>space</i>:
+					<a href="#" style="color: black; text-decoration: none;" title="space" data-toggle="popover" data-trigger="hover" data-content="
+						the spacing between intensity levels
+					"><span class="glyphicon glyphicon-info-sign hideCSS"></span></a>
+					<input type="range" min="0" max="150" step = "1" id="sSpace">
+				<i>center</i>:
+					<a href="#" style="color: black; text-decoration: none;" title="center" data-toggle="popover" data-trigger="hover" data-content="
+						the size of the blank center area
+					"><span class="glyphicon glyphicon-info-sign hideCSS"></span></a>
+					<input type="range" min="-0.9" max="0.9" step="0.05" id="sCenter">
+				
+				
+				<div id="fontAlertOff" class="showCSS"><br /><br /></div>
+				<div id="fontAlertOn" class="hideCSS"><br />
+					<a href="#" style="color: red;" title="error" data-toggle="popover" data-trigger="hover" data-content="
+						Invalid font family.
+					"><span class="glyphicon glyphicon-alert"></span></a></div>
+				<i>font</i>
+					<a href="#" style="color: black; text-decoration: none;" title="font" data-toggle="popover" data-trigger="hover" data-content="
+						the attributes of the category labels; family must be standard CSS family type
+					"><span class="glyphicon glyphicon-info-sign hideCSS"></span></a></br>
+				family: <input type="text" id="fFam" onchange="fontCheck(this)">
+				size: <input type="range" min="10" max="28" step="1" id="fSize">
+				
+				<br /><br />
+				<span class="glyphicon glyphicon-question-sign" onclick="toolTips()"></span>
+		</div>
+		<div class="col-sm-8" id="thisone"></div>
+		<div class="col-sm-2">
+			<i>variable type</i><br />
+				<input type="radio" id="discStart" name="varType" value="discrete" onchange="radioButton(this)" checked="checked"> discrete
+				<input type="radio" id="contStart" name="varType" value="continuous" onchange="radioButton(this)"> continuous
+				<br /><br />
+
+			effects<br />
+			<div id="discreteselected" class="showCSS">
+				<i>selections:</i>
+				<a href="#" style="color: black; text-decoration: none;" title="selection effects" data-toggle="popover" data-placement="auto" data-trigger="hover" data-content="
+						determines how a selected intensity is indicated
+					"><span class="glyphicon glyphicon-info-sign hideCSS"></span></a>
+				<br />
+					<input type="radio" name="selections" value="drag" id="pulseIndicate" onchange="updateAll()"> pulse
+					<input type="radio" name="selections" value="click" checked="checked" onchange="updateAll()"> are hollow
+			</div>
+
+			<div id="continuousselected" class="hideCSS">
+				<i>preview gridline?</i> <input type="checkbox" name="preview" value="gridline" id="gridline" onchange="updateAll()"><br />
+				<i>select on:</i>
+					<input type="radio" name="selectType" value="drag" id="dragSelect" onchange="updateAll()"> drag
+					<input type="radio" name="selectType" value="click" checked="checked" onchange="updateAll()"> click
+			</div>
+
+			<br /><br />
+			<div>
+				<i>category & color</i>
+				<a href="#" style="color: black; text-decoration: none;" title="colors" data-toggle="popover" data-placement="auto" data-trigger="hover" data-content="
+						accepts hexadecimal, HTML standard colors, XKCD survey colors
+					"><span class="glyphicon glyphicon-info-sign hideCSS"></span></a>
+				<br />
+				<div id="ColorSelection" style="width:250px"></div>
+				<br /><span onclick="return addColor()" class="glyphicon glyphicon-plus-sign"></span>
+			</div>
+
+			<br />
+			<div>
+				<span class="glyphicon glyphicon-check" onclick="return updateColors()"></span>
+				<span class="glyphicon glyphicon-floppy-save" onclick="printDisplay()"></span>
+				<input type="hidden" id="HldColors" />
+			</div>
+		</div>
+	</div>
+</div>
+</body>
+<script>
+	$(document).ready(function(){
+		$('[data-toggle="popover"]').popover(); 
+	});
+</script>
+
+<script>
+
+// default values
+var bigRDef = 260; // radius of entire plot
+var cDef = 16; // number of emotion categories
+var tDef = 3; // number of intensity levels per category PLUS 1 //TODO is it plus or minus?
+var pDef = 0.69; // proportion of (circle area / next biggest circle area)
+var gDef = 0.01; // gap between category sectors as [(gap size) / (circle size * c)]
+var sDef = 23; // space between same intensity levels (in pixels)
+var qDef = 0.25; // percentage larger (or if negative, smaller) than outside radius that center is
+var famDef = "Helvetica"; // font family
+var siDef = 20; // font size
+
+var names = [
+	["anger"],
+	["pride"],
+	["elation"],
+	["joy"],
+	["satisfaction"],
+	["relief"],
+	["hope"],
+	["interest"],
+	["surprise"],
+	["sadness"],
+	["fear"],
+	["shame"],
+	["guilt"],
+	["envy"],
+	["disgust"],
+	["contempt"]
+];
+
+var colors = [
+	["#ED1F24"],
+	["#F48791"],
+	["#F29C70"],
+	["#FFF200"],
+	["#E7E515"],
+	["#9ECC3B"],
+	["#69BD45"],
+	["#0F733A"],
+	["#70C493"],
+	["#00AEEF"],
+	["#3B8FCD"],
+	["#0856A7"],
+	["#2E3192"],
+	["#5C59A7"],
+	["#B578B3"],
+	["#DA4C9B"]
+];
+
+// setting default values
+document.getElementById("sBigR").value = bigRDef;
+document.getElementById("sIntensities").value = tDef;
+document.getElementById("sProportion").value = pDef;
+document.getElementById("sGap").value = gDef;
+document.getElementById("sSpace").value = sDef;
+document.getElementById("sCenter").value = qDef;
+document.getElementById("fFam").value = famDef;
+document.getElementById("fSize").value = siDef;
+var preciR = 0.05; // precision (radius): increments of percentage to decrease radius while checking overlap
+var preciS = 0.05; // precision (spacing): increments of percentage to decrease space while checking over-spacing
+var spacePad = 0.1; // when checking over-spacing, allowable percentage/amount of extra space (i.e., s * spacePad)
+var expFactor = 1.2; // exponential scaling factor, where each r = 2 * r * p^(l*expFactor)
+// array [of arrays of size 2] of size c, such that index 0=category name and 1=category color
+// ex. [[name0, color0], [name1, color1], [name2, color2]]
+
+var svgColumn = d3.select("body").selectAll('div[id="thisone"]');
+var svgDiv = svgColumn.append("div");
+svgDiv
+	.attr("class", "col-sm-8")
+	.attr("id", "rating_wheel");
+
+// initial set up
+var catInfoDef = rating_wheel.etc.categories(names, colors);
+var fontInfoDef = rating_wheel.etc.font(siDef, famDef);
+var firstWheel = rating_wheel.discrete.wheel(bigRDef, cDef, tDef, pDef, gDef, sDef, qDef, fontInfoDef, catInfoDef);
+rating_wheel.render.go(firstWheel);
+
+
+var bigRCur = bigRDef;
+var cCur = cDef;
+var tCur = tDef;
+var pCur = pDef;
+var gCur = gDef;
+var sCur = sDef;
+var qCur = qDef;
+var siCur = siDef;
+var famCur = famDef;
+var namesCur = names;
+var colorsCur = colors;
+d3.select("#sBigR").on("input", function() { updateR(+this.value); });
+d3.select("#sIntensities").on("input", function() { updateT(+this.value); });
+d3.select("#sProportion").on("input", function() { updateP(+this.value); });
+d3.select("#sGap").on("input", function() { updateG(+this.value); });
+d3.select("#sSpace").on("input", function() { updateS(+this.value); });
+d3.select("#sCenter").on("input", function() { updateQ(+this.value); });
+d3.select("#fSize").on("input", function() { updateSi(+this.value); });
+d3.select("#fFam").on("change", function() { updateFa(document.getElementById("fFam").value); });
+
+function updateR(sBigR) { bigRCur = sBigR; 
+	updateAll(); }
+function updateT(sIntensities) { tCur = sIntensities; 
+	updateAll(); }
+function updateP(sProportion) { pCur = sProportion;
+	updateAll(); }
+function updateG(sGap) { gCur = sGap;
+	updateAll(); }
+function updateS(sSpace) { sCur = sSpace; 
+	updateAll(); }
+function updateQ(sCenter) { qCur = sCenter; 
+	updateAll(); }
+function updateSi(fSize) { siCur = fSize; 
+	updateAll(); }
+function updateFa(fFam) { famCur = fFam; 
+	updateAll(); }
+	
+function updateColors()
+{
+	/*
+	Example Printout
+	Option3IncDesc=stuff,Option3Inpcolor=red;
+	Option4InpDesc=stuff,Option4InpColor=green;
+	Option5InpDesc=others,Option5InpColor=yellow;
+	Option6InpDesc=more,Option6InpColor=orange;
+	*/
+	
+	displayColors();
+	
+	var printout = document.getElementById("HldColors").value;
+	
+	var colorsArray = printout.split(';');
+	var number = colorsArray.length - 1;
+	var allNames = new Array(number);
+	var allColors = new Array(number);
+	for (var i = 0; i < number; i++)
+	{
+		allNames[i] = colorsArray[i].split(',')[0].split('=')[1]; //category name
+		allColors[i] = convertColor(colorsArray[i].split(',')[1].split('=')[1]); //category color
+	}
+	
+	namesCur = allNames;
+	colorsCur = allColors;
+	cCur = number;
+	updateAll();
+}
+
+function fontCheck(t)
+{
+
+
+	var fontAlertOff = d3.select("body").selectAll('div[id="fontAlertOff"]');
+	var fontAlertOn = d3.select("body").selectAll('div[id="fontAlertOn"]');
+
+	if(validateFont(t.value) == true)
+	{
+	    fontAlertOff.attr("class","showCSS");
+        fontAlertOn.attr("class","hideCSS");
+	}
+	else
+	{
+	    fontAlertOn.attr("class","showCSS");
+        fontAlertOff.attr("class","hideCSS");
+	}
+	
+	updateAll();
+}
+
+function updateAll()
+{
+	var bigR = bigRCur;
+	var c = cCur;
+	var t = tCur;
+	var p = pCur;
+	var g = gCur;
+	var s = sCur;
+	var q = qCur;
+	var fontFam = famCur;
+	var fontSize = siCur;
+	var summa1 = 0;
+	var names = namesCur;
+	var colors = colorsCur;
+	
+	svgDiv.remove(); // get rid of existing graph
+	
+	// redraw new graph
+	svgDiv = svgColumn.append("div");
+	svgDiv
+		.attr("class", "col-sm-8")
+		.attr("id", "rating_wheel");
+		
+	var catInfo = rating_wheel.etc.categories(names, colors);
+	var fontInfo = rating_wheel.etc.font(fontSize, fontFam);
+	
+	if (document.getElementById("contStart").checked)
+	{
+		var firstWheel = rating_wheel.continuous.wheel(bigR, c, s, fontInfo, catInfo);
+		if(document.getElementById("gridline").checked)
+		{
+			firstWheel.previewOn();
+		}
+		
+		if(document.getElementById("dragSelect").checked)
+		{
+			firstWheel.selectDrag();
+		}
+		else
+		{
+			firstWheel.selectClick();
+		}
+		
+	}
+	else
+	{
+		var firstWheel = rating_wheel.discrete.wheel(bigR, c, t, p, g, s, q, fontInfo, catInfo);
+		if(document.getElementById("pulseIndicate").checked)
+		{
+			firstWheel.indicatePulse();
+		}
+		else
+		{
+			firstWheel.indicateHollow();
+		}
+	}
+
+	rating_wheel.render.go(firstWheel);
+	
+}
+
+var help = false;
+function toolTips()
+{	
+	if (!help) // not currently showing tips
+	{
+		help = true; //toggle
+		var infos = d3.select("body").selectAll('span[class="glyphicon glyphicon-info-sign hideCSS"]');
+		infos.attr("class", "glyphicon glyphicon-info-sign showCSS");
+	}
+	else // currently showing tips
+	{
+		help = false; //toggle
+				var infos = d3.select("body").selectAll('span[class="glyphicon glyphicon-info-sign showCSS"]');
+		infos.attr("class", "glyphicon glyphicon-info-sign hideCSS");
+	}
+
+}
+
+function printDisplay()
+{
+
+	var printout = "";
+	printout += '&lt;' + 'script src="https://d3js.org/d3.v4.min.js"&gt;&lt;/' + 'script&gt;&lt;' + 'script src="ratingwheel.js"&gt;&lt;/' + 'script&gt;&lt;' + 'script&gt;';
+	
+	printout += 'var rw_colors = [';
+	for (var i = 0; i < colorsCur.length; i++)
+	{
+		if (i != 0)
+		{
+			printout += ', ';
+		}
+		printout += '["'+ colorsCur[i] +'"]';
+	}
+	printout += '];<br />var rw_names = [';
+	for (var i = 0; i < namesCur.length; i++)
+	{
+		if (i != 0)
+		{
+			printout += ', ';
+		}
+		printout += '["'+ namesCur[i] +'"]';
+	}
+	printout += '];<br />var rw_catInfo = rating_wheel.etc.categories(rw_names, rw_colors); ';
+	
+	printout += 'var rw_fontInfo = rating_wheel.etc.font('+ document.getElementById("fSize").value
+		+', "'+ document.getElementById("fFam").value +'"); ';
+	
+	printout += '<br/>var rw_thisWheel = rating_wheel.';
+	if (document.getElementById("contStart").checked)
+	{
+		printout += 'continuous.wheel('+ bigRCur +', '+ cCur +', '+ sCur;
+	}
+	else // discrete
+	{
+		printout += 'discrete.wheel('+ bigRCur +', '+ cCur +', '+ tCur +', '+ pCur +', '+ gCur +', '+ sCur +', '+ qCur;
+	}
+	
+	printout += ', rw_fontInfo, rw_catInfo);';
+	if(document.getElementById("contStart").checked && document.getElementById("gridline").checked)
+	{
+		printout += ' rw_thisWheel.previewOn();';
+	}
+	if(document.getElementById("contStart").checked && document.getElementById("dragSelect").checked)
+	{
+		printout += ' rw_thisWheel.selectDrag();';
+	}
+	if(document.getElementById("pulseIndicate").checked && !document.getElementById("contStart").checked)
+	{
+		printout += ' rw_thisWheel.indicatePulse();';
+	}
+	
+	printout += '<br />rating_wheel.render.go(rw_thisWheel); &lt;' + '/script&gt;';
+	
+	var inside = '<div class="alert alert-info alert-dismissible"><a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>';
+	inside += '<strong>Copy and paste the following code:</strong><br />';
+	inside += printout;
+	inside += '</div>';
+	document.getElementById("output").innerHTML = inside;
+
+}
+
+</script>
