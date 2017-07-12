@@ -124,6 +124,7 @@ jsPsych.plugins.video = (function() {
       var videoEl = target.target;
       if (videoEl.currentTime >= trial.stop) {
         videoEl.pause();
+        videoEl.ontimeupdate = {};
         end_trial();
       }
     }
