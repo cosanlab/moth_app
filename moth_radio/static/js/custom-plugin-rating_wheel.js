@@ -102,39 +102,13 @@ jsPsych.plugins['rating-wheel'] = (function() {
 
 			// gather the data to store for the trial
 			var trial_data = {
-				'emotionCategory': emotionIndex,
-				'emotionIntensity': emotionIntensity,
+				'category': emotionIndex,
+				'intensity': emotionIntensity,
 				'rt': response.rt,
 			};
 
 			console.log("rating data", trial_data);
-
-            // [NGREENSTEIN] TODO: Move this into moth_radio.js and bind it to the end of the trial thru the callback.
-			// here we need to create function to save 
-			// data parameter should be either the value of jsPsych.data()
-			// or the parameter that is passed to the on_data_update callback function for the core library
-			// jsPsych.data() contains ALL data
-			// the callback function will contain only the most recently written data.
-			function save_data(trial_data){
-				// change this for different experiments
-                $.ajax({
-                    type:'POST',
-                    cache: false,
-                    url: 'ratings', 
-                    contentType: 'application/json',
-                    data: JSON.stringify(trial_data),
-                    success: function(trial_data) { 
-                        console.log(trial_data); 
-                    },
-                    error:	function(trial_data) {
-                		console.log('service failed!');
-                    },
-                });
-            }
-
-            save_data(trial_data);
-            // clear the display
-            display_element.innerHTML = '';
+			display_element.innerHTML = '';
 
             // move on to the next trial
             jsPsych.finishTrial(trial_data);

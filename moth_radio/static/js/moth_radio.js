@@ -126,6 +126,7 @@ var saveVideoData = function(data) {
 		'stop_time': data.stop_time,
 	};
 	
+	console.log("saving video data");
 	console.log(dataToStore);
 	
 	$.ajax({
@@ -140,7 +141,30 @@ var saveVideoData = function(data) {
 			console.log('service failed!')
 		} 
 	});
+};
+
+var saveEmotionData = function(data) {
+	
+	console.log("saving emotion data");
+	console.log(data);
+	
+	// change this for different experiments
+	$.ajax({
+		type:'POST',
+		cache: false,
+		url: 'ratings', 
+		contentType: 'application/json',
+		data: JSON.stringify(data),
+		success: function(data) { 
+			console.log(data); 
+		},
+		error:	function(data) {
+			console.log('service failed!');
+		},
+	});
+	
 }
+
 
 //Loop through each video (one trial) and add the wheel obj and video clips for that video
 for (var trial = 0; trial < video_stim.length; trial++) {
@@ -174,6 +198,7 @@ for (var trial = 0; trial < video_stim.length; trial++) {
 		// timing_response: 1500,
 		choices: [32], // spacebar ends trial
 		// response_ends_trial: true
+		on_finish: saveEmotionData,
 	  };
 	  wheel_objects.push(wheelobj);
   };

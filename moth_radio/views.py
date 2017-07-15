@@ -22,22 +22,28 @@ def rating_to_db():
 	print(request.data)
 	content = request.get_json(silent=True)
 	print content
-	all_ratings= []
-	for key in content:
-		if key == 'rt':
-			response = content['rt']
-		if key == 'ratings':
-			ratings = content['ratings']
-			for circleObj in ratings: # for each dictionary in the list
-				if circleObj['selected'] == True:
-					selected =1
-				else:
-					selected = 0
-				circle = Ratings(category= circleObj['cat'], intensity = circleObj['intens'], selected= selected)
-				all_ratings.append(circle)
-	db.session.add_all(all_ratings)
+	
+	# Since the rating wheel only allows one selection, store that and don't worry about the others.
+	
+	# all_ratings= []
+	# for key in content:
+	# 	if key == 'rt':
+	# 		response = content['rt']
+	# 	if key == 'ratings':
+	# 		ratings = content['ratings']
+	# 		for circleObj in ratings: # for each dictionary in the list
+	# 			if circleObj['selected'] == True:
+	# 				selected =1
+	# 			else:
+	# 				selected = 0
+	# 			circle = Ratings(category= circleObj['cat'], intensity = circleObj['intens'], selected= selected)
+	# 			all_ratings.append(circle)
+	# db.session.add_all(all_ratings)
+	
+	rating = Ratings(category=content['category'], intensity=content['intensity'], selected=True)
+	db.session.add(rating)
 	db.session.commit()
-	return content
+	return json.dumps(content)
 
 @app.route('/videotrial', methods =['POST'])
 def trials_to_db():
