@@ -10,9 +10,10 @@ print app.config['num_stops']
 def start_exp():
 	num_stim= app.config['num_stim'] #change this later
 	num_stops= app.config['num_stops']
-	data = [Stimuli.query.get(i+1).__dict__['file_name'] for i in xrange(num_stim)]
+	stim_names = [Stimuli.query.get(i+1).__dict__['file_name'] for i in xrange(num_stim)]
+	stim_durations = [Stimuli.query.get(i+1).__dict__['duration'] for i in xrange(num_stim)]
 
-	return render_template('exp_moth_loop.html', stim_names = json.dumps(data), num_stops= json.dumps(num_stops))
+	return render_template('exp_moth_loop.html', stim_names = json.dumps(stim_names), stim_durations = json.dumps(stim_durations), num_stops = json.dumps(num_stops))
 
 
 @app.route('/ratings', methods =['POST'])

@@ -1,15 +1,9 @@
 // video stimuli from database; supplied by template
-console.log(video_stim);
-var video_stim = ["static/stim/Burns_Fameishness.mp4"];
+console.log(videoFiles);
+var videoFiles = ["static/stim/Burns_Fameishness.mp4"];
 /*experiment parameters*/
 
-var video_stim=['http://clips.vorwaerts-gmbh.de/VfE_html5.mp4'];
-
-//Global variables to determine stopping points; numStop supplied by template
-console.log(numStops);
-var vidLength=20; // [NGREENSTEIN] TODO: Wire this up to actual video length (I assume)
-var max=vidLength;
-var min=2;
+var videoFiles = ['http://clips.vorwaerts-gmbh.de/VfE_html5.mp4'];
 
 // sample rate is percent of time stops as proportion
 var createTimes = function(vidLength, minDiff, sampleRate, numTrys= 1000) {
@@ -39,13 +33,21 @@ var createTimes = function(vidLength, minDiff, sampleRate, numTrys= 1000) {
 // creates list of times with the maxium average distance between determined by length tand the sample rate= remember sample rate avgDiff tradeoff
 var createTimesAvg = function(vidLength, sampleRate, avgDiff , numTrys= 10000, minDiff=2) {
 
-  var numStops = Math.floor(vidLength*sampleRate);
+	// If sample rate is specified, use that. If not, use the numStops passed in by the template.
+	var numStops;
+	if (sampleRate) {
+		numStops = Math.floor(vidLength*sampleRate);
+	} else {
+		numStops = window.numStops;
+		sampleRate = 1 / numStops;
+	}
+	
   // if avgDiff not specified will give max avg based on vid length and sample rate
   var avgDiff = avgDiff || (vidLength/(vidLength*sampleRate)) -1;
   var vidRange = _.range(1,vidLength);
 
   for (var t = 0; t < numTrys; t++) {
-	  var starts = _.sample(vidRange,numStops).sort(function(a,b){return a-b});
+	  var starts = _.sample(vidRange, numStops).sort(function(a,b){return a-b});
 	  starts.unshift(0);
 
   // sample from all possible times and sort in ascending order
@@ -165,11 +167,14 @@ var saveEmotionData = function(data) {
 
 
 //Loop through each video (one trial) and add the wheel obj and video clips for that video
-for (var trial = 0; trial < video_stim.length; trial++) {
+for (var trial = 0; trial < videoFiles.length; trial++) {
 
   // create stop times for that video 
-  var sampleRate = 1 / numStops;
-  var stopTimes= createTimesAvg(vidLength, sampleRate);
+  var vidLength = videoDurations[trial];
+  if (!vidLength) {
+	vidLength = 10; // Assume this as default video length if real length not specified  
+  }
+  var stopTimes= createTimesAvg(vidLength);
   console.log("stop times", stopTimes);
 
   // creat video objects and put in list
@@ -178,7 +183,7 @@ for (var trial = 0; trial < video_stim.length; trial++) {
   for (var time = 1; time < stopTimes.length; time++) { 
 	  video_pres = {
 		type: 'video',
-		sources: [video_stim[trial]],
+		sources: [videoFiles[trial]],
 		start: stopTimes[time-1],
 		stop: stopTimes[time],
 		on_finish: saveVideoData,
