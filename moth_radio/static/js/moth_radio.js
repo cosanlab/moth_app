@@ -6,8 +6,8 @@ var video_stim = ["static/stim/Burns_Fameishness.mp4"];
 var video_stim=['http://clips.vorwaerts-gmbh.de/VfE_html5.mp4'];
 
 //Global variables to determine stopping points; numStop supplied by template
-console.log(numStop);
-var vidLength=20;
+console.log(numStops);
+var vidLength=20; // [NGREENSTEIN] TODO: Wire this up to actual video length (I assume)
 var max=vidLength;
 var min=2;
 
@@ -90,8 +90,6 @@ var welcome_block = {
 //   check_fn: check_consent
 // };
 
-
-
 var instructions_block = {
 	type: "html-keyboard-response",
 	stimulus: "<p>You are going to watch a video clip. The clip will pause  " +
@@ -170,7 +168,7 @@ var saveEmotionData = function(data) {
 for (var trial = 0; trial < video_stim.length; trial++) {
 
   // create stop times for that video 
-  var sampleRate = 0.2; // [NGREENSTEIN] I just hard-coded this number for now since it was undefined. I'm not sure why we're specifying numStops then ignoring it. Which approach do we want to take?
+  var sampleRate = 1 / numStops;
   var stopTimes= createTimesAvg(vidLength, sampleRate);
   console.log("stop times", stopTimes);
 
@@ -181,8 +179,8 @@ for (var trial = 0; trial < video_stim.length; trial++) {
 	  video_pres = {
 		type: 'video',
 		sources: [video_stim[trial]],
-		start: 0, //stop_times[time-1],
-		stop: 2, //stop_times[time]
+		start: stopTimes[time-1],
+		stop: stopTimes[time],
 		on_finish: saveVideoData,
 	  };
 	  vid_objects.push(video_pres);
@@ -192,6 +190,7 @@ for (var trial = 0; trial < video_stim.length; trial++) {
   // create wheel objects and push to list
   var wheel_objects = [];
   var wheel_obj;
+  // [NGREENSTEIN] TODO: Figure out how we want to measure reaction time and do so.
   for (piece = 1; piece < stopTimes.length; piece++){
 	  wheelobj = {
 		type:'rating-wheel',
