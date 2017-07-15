@@ -58,7 +58,9 @@ jsPsych.plugins['rating-wheel'] = (function() {
 		// to dynamically adjust the contents of a trial as a result
 		// of other trials, among other uses. you can leave this out,
 		// but in general it should be included
-	 
+		
+		var ratingWheelHtml = "<div id='rating_wheel'></div>";
+		display_element.innerHTML = ratingWheelHtml;
 
 		var rw_colors = [["#ED1F24"], ["#F48791"], ["#F29C70"], ["#FFF200"], ["#E7E515"], ["#9ECC3B"], ["#69BD45"], ["#0F733A"], ["#70C493"], ["#00AEEF"], ["#3B8FCD"], ["#0856A7"], ["#2E3192"], ["#5C59A7"], ["#B578B3"], ["#DA4C9B"]];
 		var rw_names = [["anger"], ["pride"], ["elation"], ["joy"], ["satisfaction"], ["relief"], ["hope"], ["interest"], ["surprise"], ["sadness"], ["fear"], ["shame"], ["guilt"], ["envy"], ["disgust"], ["contempt"]];
@@ -69,7 +71,7 @@ jsPsych.plugins['rating-wheel'] = (function() {
 		//var wheelDat = rating_wheel.discrete.wheel(260, 16, 3, 0.69, 0.01, 23, 0.25, rw_fontInfo, rw_catInfo);
 		//var rw_thisWheel = wheelDat[0];
 		//var circleData = wheelDat[1];
-		var rw_thisWheel = rating_wheel.discrete.wheel(260, 16, 3, 0.69, 0.01, 23, 0.25, rw_fontInfo, rw_catInfo);
+		rw_thisWheel = rating_wheel.discrete.wheel(260, 16, 3, 0.69, 0.01, 23, 0.25, rw_fontInfo, rw_catInfo);
 		
 		// function that renders rating wheel
 		rating_wheel.render.go(rw_thisWheel);
@@ -89,7 +91,9 @@ jsPsych.plugins['rating-wheel'] = (function() {
 		// function to end trial when it is time
 		var end_trial = function() {
 						
-			console.log("chosen", chosen);
+			var emotionIndex = rw_thisWheel.clickFocus[0];
+			var emotionName = rw_thisWheel.catInfo[emotionIndex].name;
+			var emotionIntensity = rw_thisWheel.clickFocus[1];
 			
 			// kill keyboard listeners
 			if (typeof keyboardListener !== 'undefined') {
@@ -98,8 +102,9 @@ jsPsych.plugins['rating-wheel'] = (function() {
 
 			// gather the data to store for the trial
 			var trial_data = {
-                'rt': response.rt,
-                'ratings': chosen ,
+				'emotionCategory': emotionIndex,
+				'emotionIntensity': emotionIntensity,
+				'rt': response.rt,
 			};
 
 			console.log("rating data", trial_data);

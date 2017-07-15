@@ -875,7 +875,7 @@ rating_wheel.render =
 	
 	discreteHollow: function(circleObj, wheelObj)
 	{
-		var clickFocus = [-1, -1];
+		wheelObj.clickFocus = [-1, -1];
 		
 		var over = (function()
 		{
@@ -923,16 +923,16 @@ rating_wheel.render =
 			return function(d, i)
 			{
 				var clicked = d3.select(this);
-				if (clickFocus[0] != -1 && clickFocus[1] != -1) // current selection exists
+				if (wheelObj.clickFocus[0] != -1 && wheelObj.clickFocus[1] != -1) // current selection exists
 				{
 					var currSelect = d3.selectAll("circle")
 						.filter(function(d)
 							{
-								return d.cat == clickFocus[0];
+								return d.cat == wheelObj.clickFocus[0];
 							})
 						.filter(function(d)
 							{
-								return d.intens == clickFocus[1];
+								return d.intens == wheelObj.clickFocus[1];
 							});
 					// visually "undo" selection
 					currSelect
@@ -942,15 +942,15 @@ rating_wheel.render =
 				clicked.each(function(d)
 				{
 					// if this is the currently selected thing
-					if (d.cat == clickFocus[0] && d.intens == clickFocus[1])
+					if (d.cat == wheelObj.clickFocus[0] && d.intens == wheelObj.clickFocus[1])
 					{
 						//visually "undo" selection
 						clicked
 							.style("fill-opacity", 1.0)
 							.style("stroke-width", 0);
 						//reset clickFocus
-						clickFocus[0] = -1;
-						clickFocus[1] = -1;
+						wheelObj.clickFocus[0] = -1;
+						wheelObj.clickFocus[1] = -1;
 					}
 					else
 					{
@@ -962,7 +962,7 @@ rating_wheel.render =
 									return d.radius * 0.25;
 								});	
 						//update clickFocus
-						clickFocus = [d.cat, d.intens];
+						wheelObj.clickFocus = [d.cat, d.intens];
 					}
 				});
 			}
