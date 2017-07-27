@@ -91,7 +91,17 @@ jsPsych.plugins['rating-wheel'] = (function() {
 		// function to end trial when it is time
 		var end_trial = function() {
 			
+			// If any emotions don't have selections, don't actually end the trial.
+			// TODO ngreenstein: Maybe indicate this to the user somehow?
 			var emotionSelections = rw_thisWheel.intensitySelections;
+			for (var emotionName in emotionSelections)
+			{
+				if (emotionSelections[emotionName] < 0)
+				{
+					console.log("no rating for " + emotionName);
+					return false;
+				}
+			}
 			
 			// kill keyboard listeners
 			if (typeof keyboardListener !== 'undefined') {
@@ -117,7 +127,7 @@ jsPsych.plugins['rating-wheel'] = (function() {
                 callback_function: end_trial,
                 valid_responses: trial.choices,
                 rt_method: 'date',
-                persist: false,
+                persist: true,
                 allow_held_key: false ,
             });
         }
