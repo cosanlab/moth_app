@@ -24,25 +24,12 @@ def rating_to_db():
 	content = request.get_json(silent=True)
 	print content
 	
-	# Since the rating wheel only allows one selection, store that and don't worry about the others.
-	
-	# all_ratings= []
-	# for key in content:
-	# 	if key == 'rt':
-	# 		response = content['rt']
-	# 	if key == 'ratings':
-	# 		ratings = content['ratings']
-	# 		for circleObj in ratings: # for each dictionary in the list
-	# 			if circleObj['selected'] == True:
-	# 				selected =1
-	# 			else:
-	# 				selected = 0
-	# 			circle = Ratings(category= circleObj['cat'], intensity = circleObj['intens'], selected= selected)
-	# 			all_ratings.append(circle)
-	# db.session.add_all(all_ratings)
-	
-	rating = Ratings(category=content['category'], intensity=content['intensity'], selected=True)
-	db.session.add(rating)
+	ratingRecords = content['emotionSelections']
+	ratingObjs = []
+	for emotionName in ratingRecords: # for each dictionary in the list
+		ratingObj = Ratings(category=emotionName, intensity=ratingRecords[emotionName], selected=True)
+		ratingObjs.append(ratingObj)
+	db.session.add_all(ratingObjs)
 	db.session.commit()
 	return json.dumps(content)
 

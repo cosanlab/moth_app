@@ -90,10 +90,8 @@ jsPsych.plugins['rating-wheel'] = (function() {
 		
 		// function to end trial when it is time
 		var end_trial = function() {
-						
-			var emotionIndex = rw_thisWheel.clickFocus[0];
-			var emotionName = rw_thisWheel.catInfo[emotionIndex].name;
-			var emotionIntensity = rw_thisWheel.clickFocus[1];
+			
+			var emotionSelections = rw_thisWheel.intensitySelections;
 			
 			// kill keyboard listeners
 			if (typeof keyboardListener !== 'undefined') {
@@ -102,8 +100,7 @@ jsPsych.plugins['rating-wheel'] = (function() {
 
 			// gather the data to store for the trial
 			var trial_data = {
-				'category': emotionIndex,
-				'intensity': emotionIntensity,
+				'emotionSelections': emotionSelections,
 				'rt': response.rt,
 			};
 
