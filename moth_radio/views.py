@@ -27,7 +27,7 @@ def rating_to_db():
 	ratingRecords = content['emotionSelections']
 	ratingObjs = []
 	for emotionName in ratingRecords: # for each dictionary in the list
-		ratingObj = Ratings(category=emotionName, intensity=ratingRecords[emotionName], selected=True)
+		ratingObj = Ratings(category=emotionName, intensity=ratingRecords[emotionName], selected=True, reaction_time=content['rt'])
 		ratingObjs.append(ratingObj)
 	db.session.add_all(ratingObjs)
 	db.session.commit()

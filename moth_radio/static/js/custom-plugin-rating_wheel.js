@@ -89,7 +89,7 @@ jsPsych.plugins['rating-wheel'] = (function() {
 		}
 		
 		// function to end trial when it is time
-		var end_trial = function() {
+		var end_trial = function(response) {
 			
 			// If any emotions don't have selections, don't actually end the trial.
 			// TODO ngreenstein: Maybe indicate this to the user somehow?
