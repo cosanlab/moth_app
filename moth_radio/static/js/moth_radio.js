@@ -1,9 +1,5 @@
 // video stimuli from database; supplied by template
 console.log(videoFiles);
-var videoFiles = ["static/stim/Burns_Fameishness.mp4"];
-/*experiment parameters*/
-
-var videoFiles = ['http://clips.vorwaerts-gmbh.de/VfE_html5.mp4'];
 
 // sample rate is percent of time stops as proportion
 var createTimes = function(vidLength, minDiff, sampleRate, numTrys= 1000) {
