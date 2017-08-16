@@ -4,3 +4,6 @@
 [submodule "moth_radio/static/lib/rating_wheel"]
 	path = moth_radio/static/lib/rating_wheel
 	url = https://github.com/cosanlab/rating_wheel.git
+[submodule "moth_radio/static/lib/rapid-rate"]
+	path = moth_radio/static/lib/rapid-rate
+	url = git@github.com:ngreenstein/rapid-rate.git
