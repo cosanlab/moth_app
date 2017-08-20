@@ -91,7 +91,7 @@ var welcome_block = {
 var instructions_block = {
 	type: "html-keyboard-response",
 	stimulus: "<p>You are going to watch a video clip. The clip will pause  " +
-	'and random times and you will be presented with a rating wheel.</p> '+
+	'and random times and you will be presented with a group of ratings to make.</p> '+
 	'<p>Please rate your emotions at the time of the rating, '+
 	'and press the spacebar when you are finished to continue watching the video clip.</p>'+
 	'<p>Press any key to begin.</p>' 
@@ -162,7 +162,7 @@ var saveEmotionData = function(data) {
 }
 
 
-//Loop through each video (one trial) and add the wheel obj and video clips for that video
+//Loop through each video (one trial) and add the rating obj and video clips for that video
 for (var trial = 0; trial < videoFiles.length; trial++) {
 
   // create stop times for that video 
@@ -188,25 +188,20 @@ for (var trial = 0; trial < videoFiles.length; trial++) {
   };
   console.log("vid_objects", vid_objects);
 
-  // create wheel objects and push to list
-  var wheel_objects = [];
-  var wheel_obj;
-  // [NGREENSTEIN] TODO: Figure out how we want to measure reaction time and do so.
+  // create rapid-rate objects and push to list
+  var rateObjs = [];
   for (piece = 1; piece < stopTimes.length; piece++){
-	  wheelobj = {
-		type:'rating-wheel',
-		// timing_response: 1500,
-		choices: [32], // spacebar ends trial
-		// response_ends_trial: true
-		on_finish: saveEmotionData,
-	  };
-	  wheel_objects.push(wheelobj);
+	  var rateObj = {
+	  	type: "rapid-rate",
+	  	items: ["Anger", "Pride", "Elation", "Joy", "Satisfaction", "Relief", "Hope", "Interest", "Surprise", "Sadness", "Fear", "Shame", "Guilt", "Envy", "Eisgust", "Contempt",],
+	  }
+	  rateObjs.push(rateObj);
   };
 
-  // add all the video -objects and rating wheel objects for this trial to the timeline
+  // add all the video -objects and rating objects for this trial to the timeline
   for (clip = 0; clip < vid_objects.length; clip++) {
 	timeline.push(vid_objects[clip]);
-	timeline.push(wheel_objects[clip]);
+	timeline.push(rateObjs[clip]);
   };
 
   // add an in_between block between movies
