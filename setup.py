@@ -8,5 +8,6 @@ setup(
 		'flask',
 		'Flask-SQLAlchemy',
 		'Flask-Bootstrap',
+		'ffprobe',
 	],
 )

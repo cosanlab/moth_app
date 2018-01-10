@@ -2,65 +2,51 @@ from moth_radio import db
 
 ## note: might need to lower precision on Floats
 # can add backrefs if need be 
-class Users(db.Model):
+class User(db.Model):
 	__tablename__ = 'users'
 	id = db.Column(db.Integer, primary_key= True, unique=True)
+	workerId = db.Column(db.String(64))
 	name = db.Column(db.String(64))
 	email = db.Column(db.String(64), unique= True)
-	def to_json(self):
-		json_post = {
-		'url': url_for('api.get_post', id = self.id, _external=True),
-		'name': self.name,
-		'email': self.email
-		}
-		return json_users
 
-class Stimuli(db.Model):
+class Stimulus(db.Model):
 	__tablename__ = 'stimuli'
 	id = db.Column(db.Integer, primary_key= True, unique=True)
-	file_name = db.Column(db.String(128))
-	duration = db.Column(db.Float)
+	filename = db.Column(db.String(128))
+	duration = db.Column(db.Integer)
 	modality = db.Column(db.String(32))
-	def to_json(self):
-		json_stimuli = {
-		'url': url_for('api.get_post', id = self.id, _external=True),
-		'file_name': self.file_name,
-		'duration': self.duration,
-		'modality': self.modality
-		}
-		return json_stimuli
+	tags = db.Column(db.String(64))
 
-class Trials(db.Model):
-	__tablename__ = 'trials'
+class Session(db.Model):
+	__tablename__ = 'sessions'
 	id = db.Column(db.Integer, primary_key= True, unique=True)
-	user_id= db.Column(db.Integer, db.ForeignKey('users.id'))
-	stimuli_id = db.Column(db.Integer, db.ForeignKey('stimuli.id'))
-	start_time = db.Column(db.Float)
-	stop_time = db.Column(db.Float)
-	def to_json(self):
-		json_post = {
-		'url': url_for('api.get_post', id = self.id, _external=True),
-		'user_id': self.user_id,
-		'stimuli_id': self.stimuli_id,
-		'start_time': self.start_time,
-		'stop_time': self.stop_time,
-		'reaction_time': self.reaction_time
-		}
-		return json_trials
+	userId = db.Column(db.Integer, db.ForeignKey('users.id'))
+	hitId = db.Column(db.String(128))
+	assignmentId = db.Column(db.String(128))
+	startTime = db.Column(db.Float)
+	stopTime = db.Column(db.Float)
 
-class Ratings(db.Model):
+class Rating(db.Model):
 	__tablename__ = 'ratings'
 	id = db.Column(db.Integer, primary_key= True, unique=True)
-	trial_id= db.Column(db.Integer, db.ForeignKey('trials.id'))
-	category = db.Column(db.Integer)
-	intensity = db.Column(db.Integer)
-	selected = db.Column(db.Integer)
-	reaction_time= db.Column(db.Float)
-	def to_json(self):
-		json_post = {
-		'url': url_for('api.get_post', id = self.id, _external=True),
-		'trial_id': self.trial_id,
-		'category': self.category,
-		'intensity': self.intensity
-		}
-		return json_ratings
+	sessionId = db.Column(db.Integer, db.ForeignKey('sessions.id'))
+	stimulusId = db.Column(db.Integer, db.ForeignKey('stimuli.id'))
+	pollSec = db.Column(db.Integer)
+	sliceStartSec = db.Column(db.Integer)
+	reactionTime = db.Column(db.Float)
+	iAnger = db.Column(db.Integer)
+	iPride = db.Column(db.Integer)
+	iElation = db.Column(db.Integer)
+	iJoy = db.Column(db.Integer)
+	iSatisfaction = db.Column(db.Integer)
+	iRelief = db.Column(db.Integer)
+	iHope = db.Column(db.Integer)
+	iInterest = db.Column(db.Integer)
+	iSurprise = db.Column(db.Integer)
+	iSadness = db.Column(db.Integer)
+	iFear = db.Column(db.Integer)
+	iShame = db.Column(db.Integer)
+	iGuilt = db.Column(db.Integer)
+	iEnvy = db.Column(db.Integer)
+	iDisgust = db.Column(db.Integer)
+	iContempt = db.Column(db.Integer)
