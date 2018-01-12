@@ -13,5 +13,8 @@ for stimFile in stimFiles:
 	duration = int(round(float(durationStr)))
 	stimObj = Stimulus(filename = stimFile, modality = "video", duration = duration)
 	stimObjs.append(stimObj)
-db.session.add_all(stimObjs)
-db.session.commit()
+try:
+	db.session.add_all(stimObjs)
+	db.session.commit()
+except Exception as error:
+	print "Error adding stimuli to database (probably just duplicates)", error

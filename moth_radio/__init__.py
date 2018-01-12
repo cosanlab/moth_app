@@ -20,6 +20,10 @@ from moth_radio import models, views
 #creating the database- not going to overwrite preexisting 
 db.create_all()
 
+# *** Un-comment the following line to add stimuli to the database. Running this more than once will probably cause
+# *** errors when the database rejects duplicate stimuli, so start with a clean `stimuli` table and run the script one time.
+# import stim_toDB
+
 #application instance- web server passes all requests it receives from clients to this object for handling iusing WSGI
 #app instance needs to know what to run for each requested URL so route
  

@@ -1,18 +1,15 @@
 from moth_radio import db
 
-## note: might need to lower precision on Floats
-# can add backrefs if need be 
-class User(db.Model):
-	__tablename__ = 'users'
+class LabUser(db.Model):
+	__tablename__ = 'labUsers'
 	id = db.Column(db.Integer, primary_key= True, unique=True)
-	workerId = db.Column(db.String(64))
 	name = db.Column(db.String(64))
 	email = db.Column(db.String(64), unique= True)
 
 class Stimulus(db.Model):
 	__tablename__ = 'stimuli'
 	id = db.Column(db.Integer, primary_key= True, unique=True)
-	filename = db.Column(db.String(128))
+	filename = db.Column(db.String(128), unique=True)
 	duration = db.Column(db.Integer)
 	modality = db.Column(db.String(32))
 	tags = db.Column(db.String(64))
@@ -20,9 +17,8 @@ class Stimulus(db.Model):
 class Session(db.Model):
 	__tablename__ = 'sessions'
 	id = db.Column(db.Integer, primary_key= True, unique=True)
-	userId = db.Column(db.Integer, db.ForeignKey('users.id'))
-	hitId = db.Column(db.String(128))
-	assignmentId = db.Column(db.String(128))
+	labUserId = db.Column(db.Integer, db.ForeignKey('labUsers.id'))
+	psiturkUid = db.Column(db.String(64))
 	startTime = db.Column(db.Float)
 	stopTime = db.Column(db.Float)
 

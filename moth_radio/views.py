@@ -1,7 +1,7 @@
 from moth_radio import app, db, models
 from flask import Flask, render_template, url_for, request 
 import json
-from models import User, Stimulus, Session, Rating
+from models import LabUser, Stimulus, Session, Rating
 
 
 print app.config['num_stops']
