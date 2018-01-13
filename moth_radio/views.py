@@ -1,21 +1,14 @@
-from moth_radio import app, db, models
+from moth_radio import app, db, models, apis
 from flask import Flask, render_template, url_for, request 
 import json
 from models import LabUser, Stimulus, Session, Rating
-
-
-print app.config['num_stops']
-
+	
 @app.route('/')
 def start_exp():
-	num_stim= app.config['num_stim'] #change this later
-	num_stops= app.config['num_stops']
-	stim_base = app.config['stim_base']
-	stim_paths = [stim_base + Stimulus.query.get(i+1).__dict__['filename'] for i in xrange(num_stim)]
-	stim_durations = [Stimulus.query.get(i+1).__dict__['duration'] for i in xrange(num_stim)]
-
-	return render_template('exp_moth_loop.html', stim_names = json.dumps(stim_paths), stim_durations = json.dumps(stim_durations), num_stops = json.dumps(num_stops))
-
+	stimuli = apis.fetchStimuli(count = app.config["num_stim"], modality = "video")
+	stimPaths = [app.config["stim_base"] + str(stim.filename) for stim in stimuli]
+	stimDurations = [str(stim.duration) for stim in stimuli]
+	return render_template('exp_moth_loop.html', stim_names = stimPaths, stim_durations = stimDurations, num_stops = app.config["num_stops"])
 
 @app.route('/ratings', methods =['POST'])
 def rating_to_db():

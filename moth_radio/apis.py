@@ -7,9 +7,11 @@ on your machine at home unless you're in debug mode. Note that this
 'security' depends on forgable HTTP headers, so it's not bulletproof.
 '''
 
-from moth_radio import app
+from moth_radio import app, db, models
 from flask import request, jsonify
 import json
+
+###### Origin Control ######
 
 # Whitelist for origins to accept.
 allowedOrigins = ["http://cosanlabradio.dartmouth.edu"]
@@ -32,6 +34,42 @@ def checkValidOrigin(request):
 		return True
 	else:
 		return False
+
+####### Stimuli	 ######
+
+# Load stimuli from the database, optionaly forcing an import of new stimuli first
+def fetchStimuli(count = None, modality = None, forceImport = False):
+	if forceImport:
+		from os import path, listdir
+		from ffprobe import FFProbe
+
+		# TODO: Expand to support audio-only modality.
+		stimLocation = path.relpath(path.dirname(__file__)) + "/" + app.config["stim_base"]
+		stimFiles = listdir(stimLocation, )
+		stimObjs = []
+		for stimFile in stimFiles:
+			# Only look at .mp4 files
+			# Check if a stimulus with this filename already exists, and add it if not.
+			if stimFile.endswith(".mp4") and models.Stimulus.query.filter_by(filename = stimFile).first() is None:
+				durationStr = FFProbe(stimLocation + stimFile).video[0].duration
+				duration = int(round(float(durationStr)))
+				stimObj = models.Stimulus(filename = stimFile, modality = "video", duration = duration)
+				stimObjs.append(stimObj)
+		try:
+			db.session.add_all(stimObjs)
+			db.session.commit()
+		except Exception as error:
+			print "Error adding stimuli to database", error
+	
+	query = models.Stimulus.query.order_by(models.Stimulus.id)
+	if modality:
+		query = query.filter_by(modality = modality)
+	if count:
+		query = query.limit(count)
+	results = query.all()
+	return results
+	
+
 	
 @app.route("/test", methods = ["POST"])
 def testRoute():
