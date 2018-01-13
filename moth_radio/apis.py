@@ -1,6 +1,9 @@
 '''
 Helper functions supporting moth_radio and JSON APIs exposing them.
 
+If a JSON API takes parameters, they must be sent as a JSON payload
+and the `content-type` on your request should be `application/json`.
+
 JSON APIs must be called from the same origin as the app; i.e. they're
 usable as AJAX calls from calls from templates, but not from `curl`
 on your machine at home unless you're in debug mode. Note that this
@@ -9,9 +12,9 @@ on your machine at home unless you're in debug mode. Note that this
 
 from moth_radio import app, db, models
 from flask import request, jsonify
-import json
+import json, math, time
 
-###### Origin Control ######
+###### Infrastructure / Helpers ######
 
 # Whitelist for origins to accept.
 allowedOrigins = ["http://cosanlabradio.dartmouth.edu"]
@@ -27,6 +30,16 @@ badOriginResponse = app.response_class(
 	mimetype = "application/json"
 )
 
+# A generic response to send when a request is unsuccessful. Uses code 500 as a
+# catch-all, but might also get thrown for other things, e.g. incomplete requests.
+# These APIs are meant for internal use by moth_radio; I'm not too worried about
+# making them perfectly self-documenting or user-friendly.
+failureResponse = app.response_class(
+	response = json.dumps({"error": "The request failed."}),
+	status = 500,
+	mimetype = "application/json"
+)
+
 # Check if a request's origin is on the whitelist.
 def checkValidOrigin(request):
 	origin = request.environ.get("HTTP_ORIGIN")
@@ -35,7 +48,7 @@ def checkValidOrigin(request):
 	else:
 		return False
 
-####### Stimuli	 ######
+###### Stimuli	######
 
 # Load stimuli from the database, optionaly forcing an import of new stimuli first
 def fetchStimuli(count = None, modality = None, forceImport = False):
@@ -45,7 +58,7 @@ def fetchStimuli(count = None, modality = None, forceImport = False):
 
 		# TODO: Expand to support audio-only modality.
 		stimLocation = path.relpath(path.dirname(__file__)) + "/" + app.config["stim_base"]
-		stimFiles = listdir(stimLocation, )
+		stimFiles = listdir(stimLocation)
 		stimObjs = []
 		for stimFile in stimFiles:
 			# Only look at .mp4 files
@@ -69,11 +82,33 @@ def fetchStimuli(count = None, modality = None, forceImport = False):
 	results = query.all()
 	return results
 	
+###### Sessions ######
 
-	
-@app.route("/test", methods = ["POST"])
-def testRoute():
+# Create a new session, and set its starTime to now
+# Returns the new Session object
+def startNewSession(labUserId = None, psiturkUid = None):
+	# We need one form of ID or the other
+	if not (labUserId or psiturkUid):
+		return False
+	session = models.Session()
+	if labUserId: session.labUserId = labUserId
+	if psiturkUid: session.psiturkUid = psiturkUid
+	session.startTime = math.floor(time.time())
+	db.session.add(session)
+	db.session.commit()
+	return session
+
+# Endpoint to create a new session and set its starTime to now
+# Responds with the session's id
+@app.route("/start-new-session", methods = ["POST"])
+def startSesh():
 	if not checkValidOrigin(request):
 		return badOriginResponse
-	response = jsonify(test = "successful")
+	labUserId = str(request.form.get("labUserId"))
+	psiturkUid = str(request.form.get("psiturkUid"))
+	session = startNewSession(labUserId, psiturkUid)
+	if not session:
+		return failureResponse
+	respDict = {"sessionId": session.id}
+	response = jsonify(respDict)
 	return response

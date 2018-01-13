@@ -211,12 +211,41 @@ console.log("timeline", timeline)
 // add final end message to the timeline
 timeline.push(end_msg);
 
+// Holder for the session ID we get from the server
+var sessionId = -1
+
+// Tell the server to start a new session for us, and get its ID
+var createSession = function()
+{
+	$.post(
+		"start-new-session",
+		{
+			// for now, just use a debug id
+			psiturkUid: "xDebugUid"
+		},
+		function(data)
+		{
+			if (data && data["sessionId"])
+			{
+				sessionId = Number(data["sessionId"]);
+			}
+			else
+			{
+				console.log("Error: no session ID returned from server.")
+			}
+		},
+		"json"
+	);
+};
+
 /*run the experiment*/
 jsPsych.init({
   //display_element: $('#jspsych-target'),
   //TODO: why doesn't the above actually work?
-  timeline: timeline,
-  on_finish: function() {
-	  jsPsych.data.displayData();
+	timeline: timeline,
+	on_trial_start: createSession,
+	on_finish: function()
+	{
+		jsPsych.data.displayData();
 	}
 });
