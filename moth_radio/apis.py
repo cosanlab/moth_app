@@ -23,17 +23,24 @@ if app.debug:
 	allowedOrigins.append("http://localhost:5000")
 	allowedOrigins.append("chrome-extension://cokgbflfommojglbmbpenpphppikmonn") #'REST Console' Chrome app, useful for debugging
 	
+# A generic response to send when something is wrong with a request.
+badRequestResponse = app.response_class(
+	response = json.dumps({"error": "Invalid request. Check the docs and make sure you're sending enough info, properly formatted."}),
+	status = 400,
+	mimetype = "application/json"
+)	
+
 # A generic response to send when a request comes from an invalid origin.
 badOriginResponse = app.response_class(
-	response = json.dumps({"error": "This is not a public API."}),
+	response = json.dumps({"error": "This is not a public API; it is only meant to be accessed via AJAX from within moth_radio."}),
 	status = 403,
 	mimetype = "application/json"
 )
 
 # A generic response to send when a request is unsuccessful. Uses code 500 as a
-# catch-all, but might also get thrown for other things, e.g. incomplete requests.
-# These APIs are meant for internal use by moth_radio; I'm not too worried about
-# making them perfectly self-documenting or user-friendly.
+# catch-all, but might also get thrown for other things. These APIs are meant for
+# internal use by moth_radio; I'm not too worried about making them perfectly
+# self-documenting or user-friendly.
 failureResponse = app.response_class(
 	response = json.dumps({"error": "The request failed."}),
 	status = 500,
@@ -84,12 +91,12 @@ def fetchStimuli(count = None, modality = None, forceImport = False):
 	
 ###### Sessions ######
 
-# Create a new session, and set its starTime to now
-# Returns the new Session object
+# Create a new session, and set its starTime to now.
+# Requires either a LabUser ID or PsiTurk UID.
+# Returns the new Session object.
 def startNewSession(labUserId = None, psiturkUid = None):
 	# We need one form of ID or the other
-	if not (labUserId or psiturkUid):
-		return False
+	if not (labUserId or psiturkUid): return False
 	session = models.Session()
 	if labUserId: session.labUserId = labUserId
 	if psiturkUid: session.psiturkUid = psiturkUid
@@ -98,17 +105,42 @@ def startNewSession(labUserId = None, psiturkUid = None):
 	db.session.commit()
 	return session
 
-# Endpoint to create a new session and set its starTime to now
-# Responds with the session's id
+# Endpoint to create a new session and set its starTime to now.
+# Requires either a LabUser ID or PsiTurk UID as `labUserId` or `psiturkUid`.
+# Responds with the new session's id.
 @app.route("/start-new-session", methods = ["POST"])
 def startSesh():
-	if not checkValidOrigin(request):
-		return badOriginResponse
+	if not checkValidOrigin(request): return badOriginResponse
 	labUserId = str(request.form.get("labUserId"))
 	psiturkUid = str(request.form.get("psiturkUid"))
+	if not (labUserId or psiturkUid): return badRequestResponse
 	session = startNewSession(labUserId, psiturkUid)
-	if not session:
-		return failureResponse
+	if not session: return failureResponse
+	respDict = {"sessionId": session.id}
+	response = jsonify(respDict)
+	return response
+
+# Stop an open session (i.e. set its stopTime to now).
+# Requires a session ID.
+# Returns the Session object that was ended.
+def stopSession(sessionId = None):
+	if not sessionId: return False
+	session = models.Session.query.get(sessionId)
+	if not session: return False # Nothing with that ID found
+	session.stopTime = math.floor(time.time())
+	db.session.commit()
+	return session
+
+# Endpoint to stop an open session (i.e. set its stopTime to now).
+# Requires a session ID as `sessionId`.
+# Responds with the session's id.
+@app.route("/stop-session", methods = ["POST"])
+def stopSesh():
+	if not checkValidOrigin(request): return badOriginResponse
+	sessionId = str(request.form.get("sessionId"))
+	if not sessionId: return badRequestResponse
+	session = stopSession(sessionId)
+	if not session: return failureResponse
 	respDict = {"sessionId": session.id}
 	response = jsonify(respDict)
 	return response

@@ -231,21 +231,34 @@ var createSession = function()
 			}
 			else
 			{
-				console.log("Error: no session ID returned from server.")
+				console.log("Error: no session ID returned from server after request to start session.")
 			}
 		},
 		"json"
 	);
 };
 
-/*run the experiment*/
+var stopSession = function()
+{
+	$.post(
+		"stop-session",
+		{
+			sessionId: sessionId
+		},
+		function(data)
+		{
+			if (!(data && data["sessionId"])) // No action required for success.
+			{
+				console.log("Error: no session ID returned from server after request to stop session.")
+			}
+		},
+		"json"
+	);
+};
+
+// Start the trial and run the experiment
+createSession();
 jsPsych.init({
-  //display_element: $('#jspsych-target'),
-  //TODO: why doesn't the above actually work?
 	timeline: timeline,
-	on_trial_start: createSession,
-	on_finish: function()
-	{
-		jsPsych.data.displayData();
-	}
+	on_finish: stopSession,
 });
