@@ -89,21 +89,65 @@ def fetchStimuli(count = None, modality = None, forceImport = False):
 	results = query.all()
 	return results
 	
+# Currently no REST endpoint for fetchStimuli(); stimuli get passed to exp_moth_loop.html thru templating engine
+	
+###### Lab Users ######
+
+# Create a new lab user
+# Requires a name and email
+# Returns the new LabUser object, or False if missing info
+def createLabUser(name = None, email = None):
+	if not (name and email): return False
+	user = models.LabUser()
+	user.name = name
+	user.email = email
+	db.session.add(user)
+	db.session.commit()
+	return user
+	
+# Look up an existing lab user by name and email
+# Requires a name and email
+# Returns the relevant LabUser object, or False if none found or missing info
+# Note: LabUsers does not currently force unique across name/email, so there could be more than one
+# (although there won't be if these APIs are used properly). This method returns the first match encountered.
+def lookUpLabUser(name = None, email = None):
+	if not (name and email): return False
+	user = models.LabUser.query.filter_by(name = name, email = email).first()
+	if not user: return False
+	return user
+	
+# Endpoint to either look up a current lab user or create a new one if no existing match exists
+# Requires a name and email
+# Responds with the id of the user
+@app.route("/start-lab-user", methods = ["POST"])
+def startLabUser():
+	if not checkValidOrigin(request): return badOriginResponse
+	name = request.form.get("name")
+	email = request.form.get("email")
+	if not (name and email): return badRequestResponse
+	user = lookUpLabUser(name = name, email = email)
+	if not user:
+		user = createLabUser(name = name, email = email)
+	if not user: return failureResponse
+	respDict = {"userId": user.id}
+	response = jsonify(respDict)
+	return response
+	
 ###### Sessions ######
 
 # Create a new session, and set its starTime to now.
 # Requires either a LabUser ID or PsiTurk UID.
-# Returns the new Session object.
+# Returns the new Session object, or False if missing info
 def startNewSession(labUserId = None, psiturkUid = None):
 	# We need one form of ID or the other
 	if not (labUserId or psiturkUid): return False
-	session = models.Session()
-	if labUserId: session.labUserId = labUserId
-	if psiturkUid: session.psiturkUid = psiturkUid
-	session.startTime = math.floor(time.time())
-	db.session.add(session)
+	sesh = models.Session()
+	if labUserId: sesh.labUserId = labUserId
+	if psiturkUid: sesh.psiturkUid = psiturkUid
+	sesh.startTime = math.floor(time.time())
+	db.session.add(sesh)
 	db.session.commit()
-	return session
+	return sesh
 
 # Endpoint to create a new session and set its starTime to now.
 # Requires either a LabUser ID or PsiTurk UID as `labUserId` or `psiturkUid`.
@@ -111,8 +155,8 @@ def startNewSession(labUserId = None, psiturkUid = None):
 @app.route("/start-new-session", methods = ["POST"])
 def startSesh():
 	if not checkValidOrigin(request): return badOriginResponse
-	labUserId = str(request.form.get("labUserId"))
-	psiturkUid = str(request.form.get("psiturkUid"))
+	labUserId = request.form.get("labUserId")
+	psiturkUid = request.form.get("psiturkUid")
 	if not (labUserId or psiturkUid): return badRequestResponse
 	session = startNewSession(labUserId, psiturkUid)
 	if not session: return failureResponse
@@ -125,11 +169,11 @@ def startSesh():
 # Returns the Session object that was ended.
 def stopSession(sessionId = None):
 	if not sessionId: return False
-	session = models.Session.query.get(sessionId)
-	if not session: return False # Nothing with that ID found
-	session.stopTime = math.floor(time.time())
+	sesh = models.Session.query.get(sessionId)
+	if not sesh: return False # Nothing with that ID found
+	sesh.stopTime = math.floor(time.time())
 	db.session.commit()
-	return session
+	return sesh
 
 # Endpoint to stop an open session (i.e. set its stopTime to now).
 # Requires a session ID as `sessionId`.
@@ -137,10 +181,60 @@ def stopSession(sessionId = None):
 @app.route("/stop-session", methods = ["POST"])
 def stopSesh():
 	if not checkValidOrigin(request): return badOriginResponse
-	sessionId = str(request.form.get("sessionId"))
+	sessionId = request.form.get("sessionId")
 	if not sessionId: return badRequestResponse
 	session = stopSession(sessionId)
 	if not session: return failureResponse
 	respDict = {"sessionId": session.id}
+	response = jsonify(respDict)
+	return response
+
+###### Ratings ######
+
+# Take a Rating object and store it in the database.
+# Requires sessionId, stimulusId, pollSec, sliceStartSec, and reactionTime
+# Returns the Rating that was stored if successful, or false if not
+def storeRating(rating):
+	if not (rating.sessionId and rating.stimulusId and rating.pollSec and
+			rating.sliceStartSec and rating.reactionTime):
+			return False
+	db.session.add(rating)
+	db.session.commit()
+	return rating
+
+# Endpoint to create a Rating object and store it in the database.
+# Requires sessionId, stimulusId, pollSec, sliceStartSec, and reactionTime
+# Responds with the id of the rating that was stored
+@app.route("/save-rating", methods = ["POST"])
+def saveRating():
+	if not checkValidOrigin(request): return badOriginResponse
+	rating = models.Rating()
+	rating.sessionId = request.form.get("sessionId")
+	rating.stimulusId = request.form.get("stimulusId")
+	rating.pollSec = request.form.get("pollSec")
+	rating.sliceStartSec = request.form.get("sliceStartSec")
+	rating.reactionTime = request.form.get("reactionTime")
+	
+	# need to be uppercase
+	rating.iAnger = request.form.get("intensities[Anger]")
+	rating.iPride = request.form.get("intensities[Pride]")
+	rating.iElation = request.form.get("intensities[Elation]")
+	rating.iJoy = request.form.get("intensities[Joy]")
+	rating.iSatisfaction = request.form.get("intensities[Satisfaction]")
+	rating.iRelief = request.form.get("intensities[Relief]")
+	rating.iHope = request.form.get("intensities[Hope]")
+	rating.iInterest = request.form.get("intensities[Interest]")
+	rating.iSurprise = request.form.get("intensities[Surprise]")
+	rating.iSadness = request.form.get("intensities[Sadness]")
+	rating.iFear = request.form.get("intensities[Fear]")
+	rating.iShame = request.form.get("intensities[Shame]")
+	rating.iGuilt = request.form.get("intensities[Guilt]")
+	rating.iEnvy = request.form.get("intensities[Envy]")
+	rating.iDisgust = request.form.get("intensities[Disgust]")
+	rating.iContempt = request.form.get("intensities[Contempt]")
+	
+	rating = storeRating(rating)
+	if not rating: return badRequestResponse # Was probably missing some property
+	respDict = {"ratingId": rating.id}
 	response = jsonify(respDict)
 	return response

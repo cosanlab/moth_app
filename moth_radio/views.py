@@ -6,9 +6,7 @@ from models import LabUser, Stimulus, Session, Rating
 @app.route('/')
 def start_exp():
 	stimuli = apis.fetchStimuli(count = app.config["num_stim"], modality = "video")
-	stimPaths = [app.config["stim_base"] + str(stim.filename) for stim in stimuli]
-	stimDurations = [str(stim.duration) for stim in stimuli]
-	return render_template('exp_moth_loop.html', stim_names = stimPaths, stim_durations = stimDurations, num_stops = app.config["num_stops"])
+	return render_template('exp_moth_loop.html', stimuli = stimuli, stimBase = app.config["stim_base"], num_stops = app.config["num_stops"])
 
 @app.route('/ratings', methods =['POST'])
 def rating_to_db():

@@ -1,6 +1,3 @@
-// video stimuli from database; supplied by template
-console.log(videoFiles);
-
 // sample rate is percent of time stops as proportion
 var createTimes = function(vidLength, minDiff, sampleRate, numTrys= 1000) {
   var numStops = Math.floor(vidLength*sampleRate);
@@ -102,113 +99,80 @@ var in_between_block = {
 	stimulus: "<p> Next video will start soon.</p><p>Click the spacebar to begin.</p>" 
 };
 
-/*end message*/
 var end_msg= {
 	type: "html-keyboard-response",
 	stimulus: "Thank you for participating! "
   };
 
-/* create timeline and push objects to timeline*/
+var videoBlockForStimAndTimes = function(stim, startTime, stopTime)
+{
+	var block =
+	{
+		type: "video",
+		sources: [stim.path],
+		start: startTime,
+		stop: stopTime,
+	};
+	return block;
+};
+
+var ratingBlockForStimAndTimes = function(stim, startTime, stopTime)
+{
+	var block = {
+		type: "rapid-rate",
+		items: ["Anger", "Pride", "Elation", "Joy", "Satisfaction", "Relief", "Hope", "Interest", "Surprise", "Sadness", "Fear", "Shame", "Guilt", "Envy", "Disgust", "Contempt",],
+		on_finish: function(ratingData)
+		{
+			var payload =
+			{
+				sessionId: sessionId,
+				stimulusId: stim.id,
+				pollSec: stopTime,
+				sliceStartSec: startTime,
+				reactionTime: ratingData["rt"],
+				intensities: ratingData["ratings"],
+			};
+			$.post(
+				"save-rating",
+				payload,
+				function(data)
+				{
+					if (!(data && data["ratingId"])) // No action required for success.
+					{
+						console.log("Error: no rating ID returned from server after request to save rating.")
+					}
+				},
+				"json"
+			);
+		}
+	};
+	return block;
+};
+
+// Build the timeline
 var timeline = [];
 timeline.push(welcome_block);
 // timeline.push(consent);
 timeline.push(instructions_block);
-
-var saveVideoData = function(data) {
+for (var i = 0; i < stimuli.length; i ++)
+{
+	stim = stimuli[i];
+	duration = stim.duration;
+	startTimes = createTimesAvg(duration);
+	for (var j = 0; j < startTimes.length; j ++)
+	{
+		var start = startTimes[j];
+		var end;
+		// Either end the clip when the next one starts, of, if it's the last one, when the whole video is over.
+		if (startTimes[j+1]) end = startTimes[j+1];
+		else end = duration;
+		
+		timeline.push(videoBlockForStimAndTimes(stim, start, end));
+		timeline.push(ratingBlockForStimAndTimes(stim, start, end));
+	}
 	
-	var dataToStore = {
-		'video': JSON.parse(data.stimulus),
-		'start_time': data.start_time,
-		'stop_time': data.stop_time,
-	};
-	
-	console.log("saving video data");
-	console.log(dataToStore);
-	
-	$.ajax({
-		type:'POST',
-		cache: false,
-		url: "videotrial", 
-		contentType: 'application/json',
-		data: JSON.stringify(dataToStore), //{json_str: JSON.stringify(trial_data)}, //,
-		success: function(output) {
-		},
-		error: function(error) {
-			console.log('service failed!')
-		} 
-	});
-};
-
-var saveEmotionData = function(data) {
-	
-	console.log("saving emotion data");
-	console.log(data);
-	
-	// change this for different experiments
-	$.ajax({
-		type:'POST',
-		cache: false,
-		url: 'ratings', 
-		contentType: 'application/json',
-		data: JSON.stringify(data),
-		success: function(data) { 
-			console.log(data); 
-		},
-		error:	function(data) {
-			console.log('service failed!');
-		},
-	});
-	
+	timeline.push(in_between_block);
 }
-
-
-//Loop through each video (one trial) and add the rating obj and video clips for that video
-for (var trial = 0; trial < videoFiles.length; trial++) {
-
-  // create stop times for that video 
-  var vidLength = videoDurations[trial];
-  if (!vidLength) {
-	vidLength = 10; // Assume this as default video length if real length not specified  
-  }
-  var stopTimes= createTimesAvg(vidLength);
-  console.log("stop times", stopTimes);
-
-  // creat video objects and put in list
-  var vid_objects=[];
-  var video_pres;
-  for (var time = 1; time < stopTimes.length; time++) { 
-	  video_pres = {
-		type: 'video',
-		sources: [videoFiles[trial]],
-		start: stopTimes[time-1],
-		stop: stopTimes[time],
-		on_finish: saveVideoData,
-	  };
-	  vid_objects.push(video_pres);
-  };
-  console.log("vid_objects", vid_objects);
-
-  // create rapid-rate objects and push to list
-  var rateObjs = [];
-  for (piece = 1; piece < stopTimes.length; piece++){
-	  var rateObj = {
-	  	type: "rapid-rate",
-	  	items: ["Anger", "Pride", "Elation", "Joy", "Satisfaction", "Relief", "Hope", "Interest", "Surprise", "Sadness", "Fear", "Shame", "Guilt", "Envy", "Eisgust", "Contempt",],
-	  }
-	  rateObjs.push(rateObj);
-  };
-
-  // add all the video -objects and rating objects for this trial to the timeline
-  for (clip = 0; clip < vid_objects.length; clip++) {
-	timeline.push(vid_objects[clip]);
-	timeline.push(rateObjs[clip]);
-  };
-
-  // add an in_between block between movies
-  timeline.push(in_between_block);
-}
-console.log("timeline", timeline)
-// add final end message to the timeline
 timeline.push(end_msg);
 
 // Holder for the session ID we get from the server

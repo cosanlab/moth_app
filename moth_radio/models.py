@@ -4,7 +4,7 @@ class LabUser(db.Model):
 	__tablename__ = 'labUsers'
 	id = db.Column(db.Integer, primary_key= True, unique=True)
 	name = db.Column(db.String(64))
-	email = db.Column(db.String(64), unique= True)
+	email = db.Column(db.String(64))
 
 class Stimulus(db.Model):
 	__tablename__ = 'stimuli'
