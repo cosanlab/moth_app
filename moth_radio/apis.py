@@ -215,6 +215,7 @@ def saveRating():
 	rating.sliceStartSec = request.form.get("sliceStartSec")
 	rating.reactionTime = request.form.get("reactionTime")
 	rating.intensities = request.form.get("intensities")
+	rating.ratingHistory = request.form.get("ratingHistory")
 	
 	rating = storeRating(rating)
 	if not rating: return badRequestResponse # Was probably missing some property

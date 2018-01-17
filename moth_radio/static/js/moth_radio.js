@@ -204,6 +204,7 @@ var ratingBlockForStimAndTimes = function(stim, startTime, stopTime)
 	var block = {
 		type: "rapid-rate",
 		items: shuffledEmotions,
+		logCommits: true,
 		on_finish: function(ratingData)
 		{
 			var payload =
@@ -214,6 +215,7 @@ var ratingBlockForStimAndTimes = function(stim, startTime, stopTime)
 				sliceStartSec: startTime,
 				reactionTime: ratingData["rt"],
 				intensities: JSON.stringify(ratingData["ratings"]),
+				ratingHistory: JSON.stringify(ratingData["commitLog"]),
 			};
 			$.post(
 				"save-rating",

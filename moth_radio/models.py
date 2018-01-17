@@ -31,3 +31,4 @@ class Rating(db.Model):
 	sliceStartSec = db.Column(db.Integer)
 	reactionTime = db.Column(db.Float)
 	intensities = db.Column(db.String(1024))
+	ratingHistory = db.Column(db.String(16384))
