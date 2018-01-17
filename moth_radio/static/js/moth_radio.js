@@ -211,7 +211,7 @@ var ratingBlockForStimAndTimes = function(stim, startTime, stopTime)
 				pollSec: stopTime,
 				sliceStartSec: startTime,
 				reactionTime: ratingData["rt"],
-				intensities: ratingData["ratings"],
+				intensities: JSON.stringify(ratingData["ratings"]),
 			};
 			$.post(
 				"save-rating",

@@ -214,24 +214,7 @@ def saveRating():
 	rating.pollSec = request.form.get("pollSec")
 	rating.sliceStartSec = request.form.get("sliceStartSec")
 	rating.reactionTime = request.form.get("reactionTime")
-	
-	# need to be uppercase
-	rating.iAnger = request.form.get("intensities[Anger]")
-	rating.iPride = request.form.get("intensities[Pride]")
-	rating.iElation = request.form.get("intensities[Elation]")
-	rating.iJoy = request.form.get("intensities[Joy]")
-	rating.iSatisfaction = request.form.get("intensities[Satisfaction]")
-	rating.iRelief = request.form.get("intensities[Relief]")
-	rating.iHope = request.form.get("intensities[Hope]")
-	rating.iInterest = request.form.get("intensities[Interest]")
-	rating.iSurprise = request.form.get("intensities[Surprise]")
-	rating.iSadness = request.form.get("intensities[Sadness]")
-	rating.iFear = request.form.get("intensities[Fear]")
-	rating.iShame = request.form.get("intensities[Shame]")
-	rating.iGuilt = request.form.get("intensities[Guilt]")
-	rating.iEnvy = request.form.get("intensities[Envy]")
-	rating.iDisgust = request.form.get("intensities[Disgust]")
-	rating.iContempt = request.form.get("intensities[Contempt]")
+	rating.intensities = request.form.get("intensities")
 	
 	rating = storeRating(rating)
 	if not rating: return badRequestResponse # Was probably missing some property
