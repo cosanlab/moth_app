@@ -139,6 +139,35 @@ var consent = {
   check_fn: check_consent
 }; */
 
+// Function to tell the server to start a new session for us, and get its ID.
+// Called after the instructions are dismissed
+var createSession = function()
+{
+	$.post(
+		"start-new-session",
+		{
+			psiturkUid: psiturkUid ? psiturkUid : null,
+			labUserId: labUserId ? labUserId : null,
+		},
+		function(data)
+		{
+			if (data && data["sessionId"])
+			{
+				sessionId = Number(data["sessionId"]);
+			}
+			else
+			{
+				console.log("Error: no session ID returned from server after request to start session.");
+			}
+		},
+		"json"
+	).fail(function(data)
+	{
+		console.log("Error: request to start session failed; the following response was returned:");
+		console.log(data.responseJSON);
+	});
+};
+
 // Instructions message, creating the session when done
 var instructionsBlock =
 {
@@ -239,35 +268,6 @@ var endMsg =
 	stimulus: "Thank you for participating!",
  };
 timeline.push(endMsg);
-
-// Function to tell the server to start a new session for us, and get its ID.
-// Called after the instructions are dismissed
-var createSession = function()
-{
-	$.post(
-		"start-new-session",
-		{
-			psiturkUid: psiturkUid,
-			labUserId: labUserId,
-		},
-		function(data)
-		{
-			if (data && data["sessionId"])
-			{
-				sessionId = Number(data["sessionId"]);
-			}
-			else
-			{
-				console.log("Error: no session ID returned from server after request to start session.");
-			}
-		},
-		"json"
-	).fail(function(data)
-	{
-		console.log("Error: request to start session failed; the following response was returned:");
-		console.log(data.responseJSON);
-	});
-};
 
 // Fucntion to tell the server the session is done.
 // Called at jsPsych's on_finish
