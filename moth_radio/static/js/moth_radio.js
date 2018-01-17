@@ -196,12 +196,14 @@ var videoBlockForStimAndTimes = function(stim, startTime, stopTime)
 	return block;
 };
 
+// Each user will have emotions presented in a random order, but the order will remain consistent for that user
+var shuffledEmotions = jsPsych.randomization.shuffle(["Anger", "Pride", "Elation", "Joy", "Satisfaction", "Relief", "Hope", "Interest", "Surprise", "Sadness", "Fear", "Shame", "Guilt", "Envy", "Disgust", "Contempt",]);
 // Build a rating block
 var ratingBlockForStimAndTimes = function(stim, startTime, stopTime)
 {
 	var block = {
 		type: "rapid-rate",
-		items: ["Anger", "Pride", "Elation", "Joy", "Satisfaction", "Relief", "Hope", "Interest", "Surprise", "Sadness", "Fear", "Shame", "Guilt", "Envy", "Disgust", "Contempt",],
+		items: shuffledEmotions,
 		on_finish: function(ratingData)
 		{
 			var payload =
