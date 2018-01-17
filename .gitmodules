@@ -1,9 +1,9 @@
 [submodule "moth_radio/static/lib/jsPsych"]
 	path = moth_radio/static/lib/jsPsych
 	url = https://github.com/jspsych/jsPsych
-[submodule "moth_radio/static/lib/rating_wheel"]
-	path = moth_radio/static/lib/rating_wheel
-	url = https://github.com/cosanlab/rating_wheel.git
 [submodule "moth_radio/static/lib/rapid-rate"]
 	path = moth_radio/static/lib/rapid-rate
 	url = git@github.com:ngreenstein/rapid-rate.git
+[submodule "moth_radio/static/lib/turkframe"]
+	path = moth_radio/static/lib/turkframe
+	url = git@github.com:ngreenstein/turkframe.git

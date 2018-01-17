@@ -1,3 +1,6 @@
+// Globals
+var psiturkUid, labUserId, sessionId;
+
 // sample rate is percent of time stops as proportion
 var createTimes = function(vidLength, minDiff, sampleRate, numTrys= 1000) {
   var numStops = Math.floor(vidLength*sampleRate);
@@ -61,49 +64,97 @@ var createTimesAvg = function(vidLength, sampleRate, avgDiff , numTrys= 10000, m
   }
 }
 
-/* define welcome message block */
-var welcome_block = {
+// Grab the psiturk UID if we have one
+psiturkUid = Turkframe.getUid();
+
+// Start building the timeline
+var timeline = [];
+
+// Welcome message
+var welcomeBlock =
+{
 	type: "html-keyboard-response",
-	stimulus: "<p>Welcome to the experiment. Press any key to begin.</p>"
+	stimulus: "<p>Welcome to the experiment. Press any key to begin.</p>",
+};
+timeline.push(welcomeBlock);
+
+// Login form for non-mturk users
+if (!Turkframe.inTurkframeMode())
+{
+	var loginBlock =
+	{
+		type: "survey-text",
+		preamble: "Please log in.",
+		// Have to specify all properties in `questions` because of a bug in the current version of
+		// the survey-text plugin (as of Jan 17, 2018).
+		questions: [{prompt: "Name:", rows: 1, columns: 40, value: "",}, {prompt: "Email:", rows: 1, columns: 40, value: ""}],
+		on_finish: function(data)
+		{
+			answers = JSON.parse(data.responses);
+			var name = answers["Q0"];
+			var email = answers["Q1"];
+			$.post(
+				"start-lab-user",
+				{
+					name: name,
+					email: email,
+				},
+				function(data)
+				{
+					if ((data && data["userId"]))
+					{
+						labUserId = data["userId"];
+					}
+					else
+					{
+						console.log("Error: no lab user ID returned from server after request to start lab user.");
+					}
+				},
+				"json"
+			).fail(function(data)
+			{
+				console.log("Error: request to start lab user failed; the following response was returned:");
+				console.log(data.responseJSON);
+			});
+		},
+	};
+	timeline.push(loginBlock);
+}
+
+/*var check_consent = function(elem) {
+  if ($('#consent_checkbox').is(':checked')) {
+    return true;
+  }
+  else {
+    alert("If you wish to participate, you must check the box next to the statement 'I agree to participate in this study.'");
+    return false;
+  }
+  return false;
 };
 
-// var check_consent = function(elem) {
-//   if ($('#consent_checkbox').is(':checked')) {
-//     return true;
-//   }
-//   else {
-//     alert("If you wish to participate, you must check the box next to the statement 'I agree to participate in this study.'");
-//     return false;
-//   }
-//   return false;
-// };
+var consent = {
+  type:'html',
+  url: "consent_page.html",
+  cont_btn: "start",
+  check_fn: check_consent
+}; */
 
-// var consent = {
-//   type:'html',
-//   url: "consent_page.html",
-//   cont_btn: "start",
-//   check_fn: check_consent
-// };
-
-var instructions_block = {
+// Instructions message, creating the session when done
+var instructionsBlock =
+{
 	type: "html-keyboard-response",
 	stimulus: "<p>You are going to watch a video clip. The clip will pause  " +
-	'and random times and you will be presented with a group of ratings to make.</p> '+
-	'<p>Please rate your emotions at the time of the rating, '+
-	'and press the spacebar when you are finished to continue watching the video clip.</p>'+
-	'<p>Press any key to begin.</p>' 
+		"and random times and you will be presented with a group of ratings to make.</p>" +
+		"<p>Please rate your emotions at the time of the rating," +
+		"and press the spacebar when you are finished to continue watching the video clip.</p>" +
+		"<p>Press any key to begin.</p>",
+	on_finish: createSession,
 };
+timeline.push(instructionsBlock);
 
-var in_between_block = {
-	type: "html-keyboard-response",
-	stimulus: "<p> Next video will start soon.</p><p>Click the spacebar to begin.</p>" 
-};
+// Tools to build repetitive blocks: videos, ratings, and messages between videos
 
-var end_msg= {
-	type: "html-keyboard-response",
-	stimulus: "Thank you for participating! "
-  };
-
+// Build a video block
 var videoBlockForStimAndTimes = function(stim, startTime, stopTime)
 {
 	var block =
@@ -116,6 +167,7 @@ var videoBlockForStimAndTimes = function(stim, startTime, stopTime)
 	return block;
 };
 
+// Build a rating block
 var ratingBlockForStimAndTimes = function(stim, startTime, stopTime)
 {
 	var block = {
@@ -139,21 +191,28 @@ var ratingBlockForStimAndTimes = function(stim, startTime, stopTime)
 				{
 					if (!(data && data["ratingId"])) // No action required for success.
 					{
-						console.log("Error: no rating ID returned from server after request to save rating.")
+						console.log("Error: no rating ID returned from server after request to save rating.");
 					}
 				},
 				"json"
-			);
+			).fail(function(data)
+			{
+				console.log("Error: request to save rating failed; the following response was returned:");
+				console.log(data.responseJSON);
+			});
 		}
 	};
 	return block;
 };
 
-// Build the timeline
-var timeline = [];
-timeline.push(welcome_block);
-// timeline.push(consent);
-timeline.push(instructions_block);
+// Canned between-videos message
+var inBetweenBlock =
+{
+	type: "html-keyboard-response",
+	stimulus: "<p> Next video will start soon.</p><p>Click the spacebar to begin.</p>",
+};
+
+// Loop through and build repetitive blocks 
 for (var i = 0; i < stimuli.length; i ++)
 {
 	stim = stimuli[i];
@@ -171,21 +230,25 @@ for (var i = 0; i < stimuli.length; i ++)
 		timeline.push(ratingBlockForStimAndTimes(stim, start, end));
 	}
 	
-	timeline.push(in_between_block);
+	timeline.push(inBetweenBlock);
 }
-timeline.push(end_msg);
 
-// Holder for the session ID we get from the server
-var sessionId = -1
+var endMsg =
+{
+	type: "html-keyboard-response",
+	stimulus: "Thank you for participating!",
+ };
+timeline.push(endMsg);
 
-// Tell the server to start a new session for us, and get its ID
+// Function to tell the server to start a new session for us, and get its ID.
+// Called after the instructions are dismissed
 var createSession = function()
 {
 	$.post(
 		"start-new-session",
 		{
-			// for now, just use a debug id
-			psiturkUid: "xDebugUid"
+			psiturkUid: psiturkUid,
+			labUserId: labUserId,
 		},
 		function(data)
 		{
@@ -195,13 +258,19 @@ var createSession = function()
 			}
 			else
 			{
-				console.log("Error: no session ID returned from server after request to start session.")
+				console.log("Error: no session ID returned from server after request to start session.");
 			}
 		},
 		"json"
-	);
+	).fail(function(data)
+	{
+		console.log("Error: request to start session failed; the following response was returned:");
+		console.log(data.responseJSON);
+	});
 };
 
+// Fucntion to tell the server the session is done.
+// Called at jsPsych's on_finish
 var stopSession = function()
 {
 	$.post(
@@ -213,15 +282,18 @@ var stopSession = function()
 		{
 			if (!(data && data["sessionId"])) // No action required for success.
 			{
-				console.log("Error: no session ID returned from server after request to stop session.")
+				console.log("Error: no session ID returned from server after request to stop session.");
 			}
 		},
 		"json"
-	);
+	).fail(function(data)
+	{
+		console.log("Error: request to stop session failed; the following response was returned:");
+		console.log(data.responseJSON);
+	});
 };
 
-// Start the trial and run the experiment
-createSession();
+// Run the experiment
 jsPsych.init({
 	timeline: timeline,
 	on_finish: stopSession,
