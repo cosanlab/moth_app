@@ -10,8 +10,7 @@ app = Flask(__name__)
 app.config['num_stops'] = 5
 app.config['num_stim'] = 5
 app.config['stim_base'] = "static/stim/"
-app.config['SQLALCHEMY_DATABASE_URI'] =\
-	'sqlite:///' + os.path.join(basedir, 'data.sqlite')
+app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://moth_radio_flask:yourPassword@localhost/moth_radio" # DON'T COMMIT PASSWORDS!
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = 0
 db = SQLAlchemy(app)
