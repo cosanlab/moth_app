@@ -348,6 +348,7 @@ var endMsg =
 timeline.push(endMsg);
 
 // Fucntion to tell the server the session is done.
+// Also hands control back to PsiTurk if running in Turkframe
 // Called at jsPsych's on_finish
 var stopSession = function()
 {
@@ -369,6 +370,9 @@ var stopSession = function()
 		console.log("Error: request to stop session failed; the following response was returned:");
 		console.log(data.responseJSON);
 	});
+	
+	// Don't need to wait for a response to the above AJAX; just need to have the request made
+	Turkframe.messageFinished({sessionId: sessionId});
 };
 
 // Run the experiment
