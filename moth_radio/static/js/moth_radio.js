@@ -1,5 +1,5 @@
 // Globals
-var psiturkUid, labUserId, sessionId;
+var psiturkUid, hasAccount, labUserId, sessionId;
 
 // sample rate is percent of time stops as proportion
 var createTimes = function(vidLength, minDiff, sampleRate, numTrys= 1000) {
@@ -78,13 +78,30 @@ var welcomeBlock =
 };
 timeline.push(welcomeBlock);
 
-// Login form for non-mturk users
+// Sequence for getting lab users logged in
 if (!Turkframe.inTurkframeMode())
-{
-	var loginBlock =
+{	
+	var loginLoopTimeline = []; // Use a nested timeline for this one so we can loop and let users try multiple times
+	var accountSuccess = false; // Marks whether we've successful gotten someone logged in / acct created
+	
+	// Ask if user wants to log in or create acct. Useful b/c it helps avoid create duplicate accts for one user based on typos.
+	var accountPrompt =
+	{
+		type: "html-button-response",
+		stimulus: "<p>Would you like to log in to an existing cosanlabradio account or create a new one?</p>",
+		choices: ["Log In", "Create Account"],
+		on_finish: function(data)
+		{
+			hasAccount = data["button_pressed"] == 0 ? true : false;
+		},
+	};
+	loginLoopTimeline.push(accountPrompt);
+	
+	// Prompt for username and email
+	var infoBlock =
 	{
 		type: "survey-text",
-		preamble: "Please log in.",
+		preamble: "Please enter your information.",
 		// Have to specify all properties in `questions` because of a bug in the current version of
 		// the survey-text plugin (as of Jan 17, 2018).
 		questions: [{prompt: "Name:", rows: 1, columns: 40, value: "",}, {prompt: "Email:", rows: 1, columns: 40, value: ""}],
@@ -94,31 +111,88 @@ if (!Turkframe.inTurkframeMode())
 			var name = answers["Q0"];
 			var email = answers["Q1"];
 			$.post(
-				"start-lab-user",
+				// Set endpoint based on answer to earlier prompt (both take/return the same fields)
+				hasAccount ? "login-lab-user" : "create-lab-user",
 				{
 					name: name,
 					email: email,
 				},
 				function(data)
 				{
+					// On success, save the ID, mark that we're successfully set up w/ an account, and move past the loading screen
 					if ((data && data["userId"]))
 					{
 						labUserId = data["userId"];
+						accountSuccess = true;
+						// Custom flag added to the loading screen so we don't accidentally clear something else
+						if (jsPsych.currentTrial()["isLoadScreen"] === true)
+						{
+							jsPsych.finishTrial(); // Move on!
+						}
 					}
 					else
 					{
-						console.log("Error: no lab user ID returned from server after request to start lab user.");
+						console.log("Error: no lab user ID returned from server after request to " + hasAccount ? "log in" : "create" + " lab user.");
+						if (jsPsych.currentTrial()["isLoadScreen"] === true)
+						{
+							jsPsych.finishTrial(); // Move on!
+						}
 					}
 				},
 				"json"
 			).fail(function(data)
 			{
-				console.log("Error: request to start lab user failed; the following response was returned:");
-				console.log(data.responseJSON);
+				// If whichever endpoint used returns a 500, it means that the opposite endpoint should have been used.
+				// So clear the loading screen, display an error, and let the user start over
+				if (data.status == 500 && jsPsych.currentTrial()["isLoadScreen"] === true)
+				{
+					jsPsych.finishTrial(); // Move on!
+				}
 			});
 		},
 	};
-	timeline.push(loginBlock);
+	loginLoopTimeline.push(infoBlock);
+	
+	// Shown while waiting for the AJAX request to finish. User can't do anything; the callbacks clear this screen when appropriate
+	var loadingBlock =
+	{
+		type: "html-keyboard-response",
+		stimulus: "<p>Loading...</p>",
+		choices: jsPsych.NO_KEYS,
+		isLoadScreen: true, // Custom flag so we can make sure we're not clearing something else
+	};
+	loginLoopTimeline.push(loadingBlock)
+	
+	// Use a relevant error message based on what the user was trying to do
+	var errorBlock =
+	{
+		type: "html-keyboard-response",
+		on_start: function(trial)
+		{
+			var errorString;
+			if (hasAccount) errorString = "We were unable to find this user in our system. Please try again."
+			else errorString = "An account matching that information already exists. Please log in."
+			var stimulus = "<p>Error: " + errorString + "</p><p>Press any key to continue.</p>";
+			trial.stimulus = stimulus;
+		}
+	};
+	// Don't show the error message if there was no error (requires another nested timeline)
+	var errorTimeline =
+	{
+		timeline: [errorBlock],
+		conditional_function: function() { return !accountSuccess; },
+	}
+	loginLoopTimeline.push(errorTimeline);
+	
+	// Loop the whole login sequence until the user gets it right
+	var loginLoop =
+	{
+		timeline: loginLoopTimeline,
+		loop_function: function() { return !accountSuccess; },
+	};
+	
+	// Add the whole loop to the main timeline
+	timeline.push(loginLoop);
 }
 
 /*var check_consent = function(elem) {

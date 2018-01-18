@@ -95,9 +95,11 @@ def fetchStimuli(count = None, modality = None, forceImport = False):
 
 # Create a new lab user
 # Requires a name and email
-# Returns the new LabUser object, or False if missing info
+# Returns the new LabUser object, or False if missing info / user already exists
 def createLabUser(name = None, email = None):
 	if not (name and email): return False
+	existing = models.LabUser.query.filter_by(name = name, email = email).first()
+	if existing: return False
 	user = models.LabUser()
 	user.name = name
 	user.email = email
@@ -115,20 +117,33 @@ def lookUpLabUser(name = None, email = None):
 	user = models.LabUser.query.filter_by(name = name, email = email).first()
 	if not user: return False
 	return user
-	
-# Endpoint to either look up a current lab user or create a new one if no existing match exists
+
+# Endpoint to get the id of an existing user based on name and email
 # Requires a name and email
-# Responds with the id of the user
-@app.route("/start-lab-user", methods = ["POST"])
-def startLabUser():
+# Responds with the id of the user, or a 500 error if the specified user does not exist
+@app.route("/login-lab-user", methods = ["POST"])
+def loginLabUser():
 	if not checkValidOrigin(request): return badOriginResponse
 	name = request.form.get("name")
 	email = request.form.get("email")
 	if not (name and email): return badRequestResponse
 	user = lookUpLabUser(name = name, email = email)
-	if not user:
-		user = createLabUser(name = name, email = email)
-	if not user: return failureResponse
+	if not user: return failureResponse;
+	respDict = {"userId": user.id}
+	response = jsonify(respDict)
+	return response
+	
+# Endpoint to get the id of an existing user based on name and email
+# Requires a name and email
+# Responds with the id of the user, or a 500 error if the specified user already exists
+@app.route("/create-lab-user", methods = ["POST"])
+def makeLabUser():
+	if not checkValidOrigin(request): return badOriginResponse
+	name = request.form.get("name")
+	email = request.form.get("email")
+	if not (name and email): return badRequestResponse
+	user = createLabUser(name = name, email = email)
+	if not user: return failureResponse;
 	respDict = {"userId": user.id}
 	response = jsonify(respDict)
 	return response
