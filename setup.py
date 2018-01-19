@@ -10,5 +10,6 @@ setup(
 		'mysql-python',
 		'Flask-Bootstrap',
 		'ffprobe',
+		'uwsgi',
 	],
 )
