@@ -2,7 +2,7 @@ server {
 	listen 80;
 	server_name cosanlabradio.dartmouth.edu;
 
-	location /moth/ {
+	location / {
 		include uwsgi_params;
 		uwsgi_pass unix:/var/www/moth_app/moth_app.sock;
 	}
