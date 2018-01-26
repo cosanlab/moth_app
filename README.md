@@ -20,3 +20,38 @@
 12. Add your MySQL user's password after the `:` in `moth_radio/__init__.py` where `app.config['SQLALCHEMY_DATABASE_URI']` is set.
 13. Start the app: `(venv)$ flask run`
 14. Deactivate the virtual environment when finished: `(venv)$ deactivate`
+
+## Server Setup & Deployment
+
+*Assumes a clean install of Ubuntu 16.04.3 LTS.*
+
+1. Get `apt-get` up to date: `$ sudo apt-get update`
+2. Install `nginx`: `$ sudo apt-get install nginx`
+3. Tell the firewall to let `nginx` do its thing: `$ sudo ufw allow 'Nginx Full'`  
+*Note: if `ufw` isn't enabled, you probably want to enable it. Just make sure it's configured not to block things you need, e.g. `ssh`.*
+4. Install Python: `$ sudo apt-get install python`
+5. Install `pip`: `$ sudo apt-get install python-pip`  
+*Note: if you're ssh'd in from a Mac and get locale-related problems, try `$ export LC_ALL="en_US.UTF-8"`*
+6. Install MySQL: `$ sudo apt-get install mysql-server`. Set a password for the root user when prompted.
+7. Install the MySQL dev tools: `$ sudo apt-get install libmysqlclient-dev`
+8. Create a database `moth_radio` and two users, `moth_radio` and `moth_radio_turk`, both with full privileges on the `moth_radio` database.
+9. Install `ffmpeg`: `$ sudo apt-get install ffmpeg`
+10. Install `virtualenv`: `$ sudo pip install virtualenv`
+11. Create a virtual environment in `/var/www` for the app: `$ virutalenv moth_env`
+12. Copy the `moth_app` project folder into `/var/www`: (from your machine) `$ scp -r moth_app user@cosanlabradio:/var/www/`
+13. Activate the environment: `$ source moth_env/bin/activate`
+14. From the `moth_app` directory, install the moth app and its dependencies: `$ pip install -e .`
+15. Add your `moth_radio` MySQL user's password after the `:` in `moth_radio/__init__.py` where `app.config['SQLALCHEMY_DATABASE_URI']` is set.
+16. Create an empty socket file: `$ touch moth_app.sock`
+17. Make sure `/var/www` has the right permissions to be served: `$ sudo chown -R www-data:www-data /var/www`
+18. Install the `moth_app.service` service: `$ sudo mv moth_app.service /etc/systemd/system/`
+19. Start the service:  
+    ```
+    $ sudo systemctl daemon-reload  
+    $ sudo systemctl start moth_app  
+    $ sudo systemctl enable moth_app  
+    ```
+20. Install the `moth_app` `nginx` config file: `$ sudo mv moth_app /etc/nginx/sites-available`
+21. Symlink the same config file to `sites-enabled`: `$ sudo ln -s /etc/nginx/sites-available/moth_app /etc/nginx/sites-enabled/`
+22. Restart `nginx`: `$ sudo systemctl restart nginx`
+23. Restart the server: `$ sudo reboot`

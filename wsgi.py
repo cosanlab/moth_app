@@ -1,4 +1,4 @@
-from myproject import app
+from moth_radio import app
 
 if __name__ == "__main__":
 	app.run()

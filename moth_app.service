@@ -1,0 +1,12 @@
+[Unit]
+Description = uWSGI instance to serve moth_app
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/moth_app
+Environment="PATH=/var/www/moth_env/bin"
+ExecStart=/var/www/moth_env/bin/uwsgi --ini moth_app.ini
+[Install]
+WantedBy=multi-user.target
