@@ -15,7 +15,7 @@
 11. [Install MySQL](https://gist.github.com/nrollr/3f57fc15ded7dddddcc4e82fe137b58e)
 	1. Install the package (e.g. `(venv)$ brew install mysql`)
 	2. Create a database `moth_radio`
-	3. Create a user `moth_radio_flask` and give it a password
+	3. Create a user `moth_radio` and give it a password
 	4. Give the user privileges on the `moth_radio` database
 12. Add your MySQL user's password after the `:` in `moth_radio/__init__.py` where `app.config['SQLALCHEMY_DATABASE_URI']` is set.
 13. Start the app: `(venv)$ flask run`
