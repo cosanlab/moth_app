@@ -25,34 +25,3 @@ def rating_to_db():
 	db.session.add_all(ratingObjs)
 	db.session.commit()
 	return json.dumps(content)
-
-@app.route('/videotrial', methods =['POST'])
-def trials_to_db():
-	content = request.get_json(silent=True)
-	trial_data= Trials(start_time= content["start_time"], stop_time = content["stop_time"])
-	#trial_data= Trials(stimuli_id= content["video"], start_time= content["start_time"], stop_time = content["stop_time"])
-	db.session.add(trial_data)
-	db.session.commit()
-	return json.dumps(content)
-
-# @app.route('/stimuli', methods =['POST'])
-# def Stimuli_to_db():
-# 	#trials = Post.from_json(request.json)
-# 	print 'received stimuli'
-
-
-# 	print(request.json)
-# 	#content= json.loads(request.json) 
-# 	content = request.get_json(silent = True) #data is a stringified object do we need to parse this??
-# 	print content
-	
-# 	#content = json.loads(trials)
-# 	#list of objects circle through and add new row for each item in list
-# 	# for each list add new row, and append the rt that is same for all
-# 	#trial_data= Trials(stimuli_id =content['stimulus'], start_time= content['start_time'], stop_time = content['stop_time'])
-# 	stimuli_data= Stimuli(file_name= content['file_name'])
-# 	db.session.add(trial_data)
-# 	db.session.commit()
-# 	return
-
-
