@@ -2,7 +2,9 @@ server {
 	listen 80;
 	server_name cosanlabradio.dartmouth.edu;
 
-	location / {
+	location = /moth { rewrite ^ /moth/; }
+	location /moth { try_files $uri @moth; }
+	location @moth {
 		include uwsgi_params;
 		uwsgi_pass unix:/var/www/moth_app/moth_app.sock;
 	}

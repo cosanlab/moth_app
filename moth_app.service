@@ -7,6 +7,6 @@ User=www-data
 Group=www-data
 WorkingDirectory=/var/www/moth_app
 Environment="PATH=/var/www/moth_env/bin"
-ExecStart=/var/www/moth_env/bin/uwsgi --ini moth_app.ini
+ExecStart=/var/www/moth_env/bin/uwsgi --ini moth_app.ini --manage-script-name --mount /moth=moth_radio:app
 [Install]
 WantedBy=multi-user.target
