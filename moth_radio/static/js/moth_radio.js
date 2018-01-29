@@ -342,7 +342,8 @@ for (var i = 0; i < selectedStim.length; i ++)
 		timeline.push(ratingBlockForStimAndTimes(stim, start, end));
 	}
 	
-	timeline.push(inBetweenBlock);
+	// Add an in-between block if there is another video to play
+	if (i < (selectedStim.length - 1)) timeline.push(inBetweenBlock);
 }
 
 var endMsg =
