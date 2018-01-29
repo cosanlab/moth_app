@@ -1,5 +1,5 @@
 // Globals
-var psiturkUid, hasAccount, labUserId, sessionId;
+var psiturkUid, hasAccount, labUserId, sessionId, shuffledEmotions, selectedStim;
 
 // sample rate is percent of time stops as proportion
 var createTimes = function(vidLength, minDiff, sampleRate, numTrys= 1000) {
@@ -124,6 +124,7 @@ if (!Turkframe.inTurkframeMode())
 					{
 						labUserId = data["userId"];
 						accountSuccess = true;
+						finishTimeline();
 						// Custom flag added to the loading screen so we don't accidentally clear something else
 						if (jsPsych.currentTrial()["isLoadScreen"] === true)
 						{
@@ -194,6 +195,10 @@ if (!Turkframe.inTurkframeMode())
 	// Add the whole loop to the main timeline
 	timeline.push(loginLoop);
 }
+else
+{
+	finishTimeline();
+}
 
 /*var check_consent = function(elem) {
   if ($('#consent_checkbox').is(':checked')) {
@@ -243,19 +248,6 @@ var createSession = function()
 	});
 };
 
-// Instructions message, creating the session when done
-var instructionsBlock =
-{
-	type: "html-keyboard-response",
-	stimulus: "<p>You are going to watch a video clip. The clip will pause  " +
-		"and random times and you will be presented with a group of ratings to make.</p>" +
-		"<p>Please rate your emotions at the time of the rating," +
-		"and press the spacebar when you are finished to continue watching the video clip.</p>" +
-		"<p>Press any key to begin.</p>",
-	on_finish: createSession,
-};
-timeline.push(instructionsBlock);
-
 // Tools to build repetitive blocks: videos, ratings, and messages between videos
 
 // Build a video block
@@ -271,8 +263,6 @@ var videoBlockForStimAndTimes = function(stim, startTime, stopTime)
 	return block;
 };
 
-// Each user will have emotions presented in a random order, but the order will remain consistent for that user
-var shuffledEmotions = jsPsych.randomization.shuffle(["Anger", "Pride", "Elation", "Joy", "Satisfaction", "Relief", "Hope", "Interest", "Surprise", "Sadness", "Fear", "Shame", "Guilt", "Envy", "Disgust", "Contempt",]);
 // Build a rating block
 var ratingBlockForStimAndTimes = function(stim, startTime, stopTime)
 {
@@ -322,36 +312,57 @@ var inBetweenBlock =
 	stimulus: "<p> Next video will start soon.</p><p>Click the spacebar to begin.</p>",
 };
 
-// Randomly select the requested number of stimuli
-var selectedStim = jsPsych.randomization.sampleWithoutReplacement(stimuli, numStim);
-// Loop through and build repetitive blocks 
-for (var i = 0; i < selectedStim.length; i ++)
+var finishTimeline = function()
 {
-	stim = selectedStim[i];
-	duration = stim.duration;
-	startTimes = createTimesAvg(duration);
-	for (var j = 0; j < startTimes.length; j ++)
+	var timelineToAdd = [];
+	// Instructions message, creating the session when done
+	var instructionsBlock =
 	{
-		var start = startTimes[j];
-		var end;
-		// Either end the clip when the next one starts, of, if it's the last one, when the whole video is over.
-		if (startTimes[j+1]) end = startTimes[j+1];
-		else end = duration;
+		type: "html-keyboard-response",
+		stimulus: "<p>You are going to watch a video clip. The clip will pause  " +
+			"and random times and you will be presented with a group of ratings to make.</p>" +
+			"<p>Please rate your emotions at the time of the rating," +
+			"and press the spacebar when you are finished to continue watching the video clip.</p>" +
+			"<p>Press any key to begin.</p>",
+		on_finish: createSession,
+	};
+	timelineToAdd.push(instructionsBlock);
+	
+	// Each user will have emotions presented in a random order, but the order will remain consistent for that user
+	shuffledEmotions = jsPsych.randomization.shuffle(["Anger", "Pride", "Elation", "Joy", "Satisfaction", "Relief", "Hope", "Interest", "Surprise", "Sadness", "Fear", "Shame", "Guilt", "Envy", "Disgust", "Contempt",]);
+	// Randomly select the requested number of stimuli
+	selectedStim = jsPsych.randomization.sampleWithoutReplacement(stimuli, numStim);
+	// Loop through and build repetitive blocks 
+	for (var i = 0; i < selectedStim.length; i ++)
+	{
+		stim = selectedStim[i];
+		duration = stim.duration;
+		startTimes = createTimesAvg(duration);
+		for (var j = 0; j < startTimes.length; j ++)
+		{
+			var start = startTimes[j];
+			var end;
+			// Either end the clip when the next one starts, of, if it's the last one, when the whole video is over.
+			if (startTimes[j+1]) end = startTimes[j+1];
+			else end = duration;
+			
+			timelineToAdd.push(videoBlockForStimAndTimes(stim, start, end));
+			timelineToAdd.push(ratingBlockForStimAndTimes(stim, start, end));
+		}
 		
-		timeline.push(videoBlockForStimAndTimes(stim, start, end));
-		timeline.push(ratingBlockForStimAndTimes(stim, start, end));
+		// Add an in-between block if there is another video to play
+		if (i < (selectedStim.length - 1)) timelineToAdd.push(inBetweenBlock);
 	}
 	
-	// Add an in-between block if there is another video to play
-	if (i < (selectedStim.length - 1)) timeline.push(inBetweenBlock);
-}
-
-var endMsg =
-{
-	type: "html-keyboard-response",
-	stimulus: "Thank you for participating!",
- };
-timeline.push(endMsg);
+	var endMsg =
+	{
+		type: "html-keyboard-response",
+		stimulus: "Thank you for participating!",
+	 };
+	timelineToAdd.push(endMsg);
+	
+	jsPsych.addNodeToEndOfTimeline({timeline: timelineToAdd}, new Function);
+};
 
 // Fucntion to tell the server the session is done.
 // Also hands control back to PsiTurk if running in Turkframe
