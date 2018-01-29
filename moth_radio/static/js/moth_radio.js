@@ -279,6 +279,8 @@ var ratingBlockForStimAndTimes = function(stim, startTime, stopTime)
 		type: "rapid-rate",
 		items: shuffledEmotions,
 		logCommits: true,
+		topMsg: "Please rate each of the following emotions:",
+		bottomMsg: "Press 'space' when finished.",
 		on_finish: function(ratingData)
 		{
 			var payload =
