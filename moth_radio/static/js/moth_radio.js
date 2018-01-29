@@ -322,10 +322,12 @@ var inBetweenBlock =
 	stimulus: "<p> Next video will start soon.</p><p>Click the spacebar to begin.</p>",
 };
 
+// Randomly select the requested number of stimuli
+var selectedStim = jsPsych.randomization.sampleWithoutReplacement(stimuli, numStim);
 // Loop through and build repetitive blocks 
-for (var i = 0; i < stimuli.length; i ++)
+for (var i = 0; i < selectedStim.length; i ++)
 {
-	stim = stimuli[i];
+	stim = selectedStim[i];
 	duration = stim.duration;
 	startTimes = createTimesAvg(duration);
 	for (var j = 0; j < startTimes.length; j ++)
