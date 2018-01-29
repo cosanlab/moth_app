@@ -151,29 +151,33 @@ def makeLabUser():
 ###### Sessions ######
 
 # Create a new session, and set its starTime to now.
-# Requires either a LabUser ID or PsiTurk UID.
+# Requires either a LabUser ID or PsiTurk UID,
+# plus a JSON string representing the emotions to be rated, in order
 # Returns the new Session object, or False if missing info
-def startNewSession(labUserId = None, psiturkUid = None):
+def startNewSession(labUserId = None, psiturkUid = None, emotionOrder = None):
 	# We need one form of ID or the other
-	if not (labUserId or psiturkUid): return False
+	if not ((labUserId or psiturkUid) and emotionOrder): return False
 	sesh = models.Session()
 	if labUserId: sesh.labUserId = labUserId
 	if psiturkUid: sesh.psiturkUid = psiturkUid
 	sesh.startTime = math.floor(time.time())
+	sesh.emotionOrder = emotionOrder
 	db.session.add(sesh)
 	db.session.commit()
 	return sesh
 
 # Endpoint to create a new session and set its starTime to now.
-# Requires either a LabUser ID or PsiTurk UID as `labUserId` or `psiturkUid`.
+# Requires either a LabUser ID or PsiTurk UID as `labUserId` or `psiturkUid`,
+# plus a JSON array of emotions to be rated, in order, as `emotionOrder`.
 # Responds with the new session's id.
 @app.route("/start-new-session", methods = ["POST"])
 def startSesh():
 	if not checkValidOrigin(request): return badOriginResponse
 	labUserId = request.form.get("labUserId")
 	psiturkUid = request.form.get("psiturkUid")
-	if not (labUserId or psiturkUid): return badRequestResponse
-	session = startNewSession(labUserId, psiturkUid)
+	emotionOrder = request.form.get("emotionOrder")
+	if not ((labUserId or psiturkUid) and emotionOrder): return badRequestResponse
+	session = startNewSession(labUserId, psiturkUid, emotionOrder)
 	if not session: return failureResponse
 	respDict = {"sessionId": session.id}
 	response = jsonify(respDict)

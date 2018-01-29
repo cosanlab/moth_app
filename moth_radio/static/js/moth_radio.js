@@ -222,6 +222,7 @@ var createSession = function()
 		{
 			psiturkUid: psiturkUid ? psiturkUid : null,
 			labUserId: labUserId ? labUserId : null,
+			emotionOrder: JSON.stringify(shuffledEmotions),
 		},
 		function(data)
 		{

@@ -21,6 +21,7 @@ class Session(db.Model):
 	psiturkUid = db.Column(db.String(64))
 	startTime = db.Column(db.Integer)
 	stopTime = db.Column(db.Integer)
+	emotionOrder = db.Column(db.String(1024))
 
 class Rating(db.Model):
 	__tablename__ = 'ratings'
