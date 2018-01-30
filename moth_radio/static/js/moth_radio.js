@@ -208,8 +208,9 @@ if (!Turkframe.inTurkframeMode())
 			).fail(function(data)
 			{
 				// If whichever endpoint used returns a 500, it means that the opposite endpoint should have been used.
+				// If the endpoint returns a 400, it means something was missing from the request (a user probably left a field blank).
 				// So clear the loading screen, display an error, and let the user start over
-				if (data.status == 500 && jsPsych.currentTrial()["isLoadScreen"] === true)
+				if ((data.status == 500 || data.status == 400) && jsPsych.currentTrial()["isLoadScreen"] === true)
 				{
 					jsPsych.finishTrial(); // Move on!
 				}
