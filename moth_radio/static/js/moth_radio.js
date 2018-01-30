@@ -1,6 +1,43 @@
 // Globals
 var psiturkUid, hasAccount, labUserId, sessionId, shuffledEmotions, selectedStim;
 
+// Create stop times given a video's duration, a base sample interval in seconds,
+// and the proportion of the sample interval by which to vary each stop point.
+var createTimesForDurationAndSampleInterval = function(duration, sampleInterval, jitterRatio = 0.25, numTries = 1000)
+{
+	
+	var roundToTenths = function(number)
+	{
+		return Math.round(number * 10) / 10;
+	};
+	
+	var numStops = duration / sampleInterval,
+		jitterSeconds = jitterRatio * sampleInterval,
+		minDuration = roundToTenths(sampleInterval - jitterSeconds / 2),
+		maxDuration = roundToTenths(sampleInterval + jitterSeconds / 2),
+		possibleDurations = _.range(minDuration, maxDuration, 0.1).map(function(duration){return roundToTenths(duration)});
+
+	var starts = [0];
+	for (var i = 0; i < numStops; i ++)
+	{
+		var lastStart = starts[i],
+			timeRemaining = duration - lastStart;
+
+		// If the time remaining is within the acceptable range for clip durations, just finish out the video.
+		// This also prevents ending up with a start point beyond the video duration.
+		if (timeRemaining < maxDuration)
+		{
+			break;
+		}
+		
+		var sliceDuration = _.sample(possibleDurations),
+			thisStart = roundToTenths(lastStart + sliceDuration);
+		starts.push(thisStart);
+	}
+	
+	return starts;
+};
+
 // sample rate is percent of time stops as proportion
 var createTimes = function(vidLength, minDiff, sampleRate, numTrys= 1000) {
   var numStops = Math.floor(vidLength*sampleRate);
@@ -337,7 +374,7 @@ var finishTimeline = function()
 	{
 		stim = selectedStim[i];
 		duration = stim.duration;
-		startTimes = createTimesAvg(duration);
+		startTimes = createTimesForDurationAndSampleInterval(duration, sampleInterval);
 		for (var j = 0; j < startTimes.length; j ++)
 		{
 			var start = startTimes[j];

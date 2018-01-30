@@ -8,7 +8,8 @@ from flask_sqlalchemy import SQLAlchemy
 basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__)
 app.config['num_stops'] = 5
-app.config['num_stim'] = 5
+app.config['num_stim'] = 1
+app.config['sample_interval'] = 30
 app.config['stim_base'] = "static/stim/"
 app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://moth_radio:yourPassword@localhost/moth_radio" # DON'T COMMIT PASSWORDS!
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
