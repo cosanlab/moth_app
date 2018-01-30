@@ -2,8 +2,9 @@
 var psiturkUid, hasAccount, labUserId, sessionId, shuffledEmotions, selectedStim;
 
 // Create stop times given a video's duration, a base sample interval in seconds,
-// and the proportion of the sample interval by which to vary each stop point.
-var createTimesForDurationAndSampleInterval = function(duration, sampleInterval, jitterRatio = 0.25, numTries = 1000)
+// the proportion of the sample interval by which to vary each stop point,
+// and the minimum offset between the beginning of the video and the first stop.
+var createTimesForDurationAndSampleInterval = function(duration, sampleInterval, jitterRatio = 0.33, minOffset = 5)
 {
 	
 	var roundToTenths = function(number)
@@ -11,16 +12,18 @@ var createTimesForDurationAndSampleInterval = function(duration, sampleInterval,
 		return Math.round(number * 10) / 10;
 	};
 	
-	var numStops = duration / sampleInterval,
+	var numStops = duration / sampleInterval -1 , // First stop is the offset
 		jitterSeconds = jitterRatio * sampleInterval,
 		minDuration = roundToTenths(sampleInterval - jitterSeconds / 2),
 		maxDuration = roundToTenths(sampleInterval + jitterSeconds / 2),
-		possibleDurations = _.range(minDuration, maxDuration, 0.1).map(function(duration){return roundToTenths(duration)});
+		possibleDurations = _.range(minDuration, maxDuration, 0.1).map(function(duration){return roundToTenths(duration)}),
+		possibleOffsets = _.range(minOffset, minDuration, 0.1).map(function(duration){return roundToTenths(duration)}),
+		offset = _.sample(possibleOffsets);
 
-	var starts = [0];
+	var starts = [0, offset];
 	for (var i = 0; i < numStops; i ++)
 	{
-		var lastStart = starts[i],
+		var lastStart = starts[i + 1],
 			timeRemaining = duration - lastStart;
 
 		// If the time remaining is within the acceptable range for clip durations, just finish out the video.
@@ -36,6 +39,30 @@ var createTimesForDurationAndSampleInterval = function(duration, sampleInterval,
 	}
 	
 	return starts;
+};
+
+var visualizeTimes = function(width, height, duration)
+{
+	var tests = "";
+	
+	for (var i = 0; i < height; i ++)
+	{
+		var scale = function(num) { return Math.round(num / (duration/width)) };
+		var times = createTimesForDurationAndSampleInterval(duration, 30),
+			scaled = _.map(times, scale),
+			row = "";
+		scaled.push(scale(duration));
+		for (var j = 0; j < scaled.length - 1; j ++)
+		{
+			var thisStop = scaled[j],
+				nextStop = scaled[j + 1],
+				length = nextStop - thisStop;
+			row += "-".repeat(length);
+			row += "8";
+		}
+		tests += row + "\n";
+	}
+	return tests;
 };
 
 // sample rate is percent of time stops as proportion
