@@ -1,5 +1,13 @@
 // Globals
-var psiturkUid, hasAccount, labUserId, sessionId, shuffledEmotions, selectedStim;
+var psiturkUid,
+	hasAccount,
+	labUserId,
+	sessionId,
+	shuffledEmotions,
+	selectedStim,
+	humanFails = 0,
+	maxHumanFails = 2,
+	passedHuman;
 
 // Create stop times given a video's duration, a base sample interval in seconds,
 // the proportion of the sample interval by which to vary each stop point,
@@ -58,7 +66,7 @@ var visualizeTimes = function(width, height, duration)
 				nextStop = scaled[j + 1],
 				length = nextStop - thisStop;
 			row += "-".repeat(length);
-			row += "8";
+			row += "#";
 		}
 		tests += row + "\n";
 	}
@@ -303,6 +311,7 @@ var createSession = function()
 			else
 			{
 				console.log("Error: no session ID returned from server after request to start session.");
+				// display error and end trial
 			}
 		},
 		"json"
@@ -310,6 +319,7 @@ var createSession = function()
 	{
 		console.log("Error: request to start session failed; the following response was returned:");
 		console.log(data.responseJSON);
+		//display error and end trial
 	});
 };
 
@@ -380,6 +390,76 @@ var inBetweenBlock =
 var finishTimeline = function()
 {
 	var timelineToAdd = [];
+	
+	var numerals = [1, 2, 3, 4],
+		words = ["one", "two", "three", "four"],
+		numIds = _.sample(_.range(0, 4), 2);
+		
+	
+	// Check if someone is human or not
+	var humanTestBlock =
+	{
+		type: "survey-text",
+		preamble: "Just to make sure you're human, what is <strong>" + words[numIds[0]] +"</strong> plus <strong>" + words[numIds[1]] + "</strong>? Answer with a single numeral.",
+		// Have to specify all properties in `questions` because of a bug in the current version of
+		// the survey-text plugin (as of Jan 17, 2018).
+		questions: [{prompt: "Answer:", rows: 1, columns: 20, value: "",}],
+		on_finish: function(data)
+		{
+			answers = JSON.parse(data.responses);
+			var answer = answers["Q0"];
+			if (answer == numerals[numIds[0]] + numerals[numIds[1]])
+			{
+				passedHuman = true;
+			}
+			else
+			{
+				humanFails += 1;
+			}
+			jsPsych.finishTrial();
+		},
+	};
+	
+	// If the test is failed, either tell the user to try again or that they're getting booted.
+	var humanErrorBlock =
+	{
+		type: "html-keyboard-response",
+		on_start: function(trial)
+		{
+			var errorString;
+			if (humanFails <= maxHumanFails) errorString = "Sorry, that was not the correct answer. Please try again."
+			else errorString = "Sorry, too many incorrect answers were entered. This trial will not continue."
+			var stimulus = "<p>" + errorString + "</p><p>Press any key to continue.</p>";
+			trial.stimulus = stimulus;
+		},
+		on_finish: function()
+		{
+			if (humanFails >= maxHumanFails)
+			{
+				console.log("abort trial");
+			}
+			jsPsych.finishTrial();
+		},
+	};
+	
+	var humanErrConditional = 
+	{
+		timeline: [humanErrorBlock],
+		conditional_function: function()
+		{
+			return !passedHuman;
+		},
+	}
+	var humanTestLoop =
+	{
+		timeline: [humanTestBlock, humanErrConditional],
+		loop_function: function()
+		{
+			return !passedHuman;
+		},
+	};
+	timelineToAdd.push(humanTestLoop);
+	
 	// Instructions message, creating the session when done
 	var instructionsBlock =
 	{
