@@ -7,7 +7,8 @@ var psiturkUid,
 	selectedStim,
 	humanFails = 0,
 	maxHumanFails = 2,
-	passedHuman;
+	passedHuman,
+	visibilityListener;
 
 // Create stop times given a video's duration, a base sample interval in seconds,
 // the proportion of the sample interval by which to vary each stop point,
@@ -334,6 +335,8 @@ var videoBlockForStimAndTimes = function(stim, startTime, stopTime)
 		sources: [stim.path],
 		start: startTime,
 		stop: stopTime,
+		on_start: function() { $(document).on("visibilitychange", visibilityListener); },
+		on_finish: function() { $(document).off("visibilitychange", visibilityListener); },
 	};
 	return block;
 };
@@ -389,6 +392,17 @@ var inBetweenBlock =
 
 var finishTimeline = function()
 {
+	visibilityListener = function(event)
+	{
+		if (document.visibilityState == "hidden")
+		{
+			var videoEl = document.getElementById("jspsych-video-player");
+			videoEl.pause();
+			alert("To complete this trial, all videos must remain visible and audible.");
+			videoEl.play();
+		}
+	};
+	
 	var timelineToAdd = [];
 	
 	var numerals = [1, 2, 3, 4],
