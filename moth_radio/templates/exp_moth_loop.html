@@ -21,16 +21,7 @@
 		numStops = {{ num_stops }};
 		numStim = {{ num_stim }};
 		sampleInterval = {{ sample_interval }};
-				
-		stimuli = []
-		{% for stim in stimuli %}
-			thisStim = {
-				id: {{stim.id}},
-				duration: {{stim.duration}},
-				path: "{{stimBase + stim.filename}}",
-			};
-			stimuli.push(thisStim);
-		{% endfor %}
+		stimBase = "{{ stim_base }}";
 		
 	</script>
  

@@ -88,8 +88,43 @@ def fetchStimuli(count = None, modality = None, forceImport = False):
 		query = query.limit(count)
 	results = query.all()
 	return results
+
+# Find the stimuli that a given user has not already 	rated.
+# Requires a labUserId or a psiturkUid.
+# Returns an array of Stimulus objects.
+def validStimuliForUser(labUserId = None, psiturkUid = None, count = None, modality = None, forceImport = None):
+	if not (labUserId or psiturkUid): return False
 	
-# Currently no REST endpoint for fetchStimuli(); stimuli get passed to exp_moth_loop.html thru templating engine
+	# Find closed sessions for this user
+	query = models.Session.query.filter(models.Session.stopTime != None)
+	if labUserId:
+		query = query.filter_by(labUserId = labUserId)
+	if psiturkUid:
+		query = query.filter_by(psiturkUid = psiturkUid)
+	sessions = query.all()
+	# Grab an open session if there is one and add it to the list
+	openSesh = retrieveOpenSession(labUserId = labUserId, psiturkUid = psiturkUid)
+	if openSesh: sessions.append(openSesh)
+	
+	badStims = []
+	
+	if sessions:
+		# Loop through sessions and make a list of stimulus IDs to exclude...
+		for sesh in sessions:
+			seq = json.loads(sesh.sequence)
+			for stimObj in seq:
+				badStims.append(stimObj.get("stimulus"))
+		# ...but add back anything from the open session that hasn't been finished yet.
+		openRemain = remainingSequenceForSession(openSesh)
+		if openRemain:
+			for stimObj in openRemain:
+				badStims.remove(stimObj.get("stimulus"))
+	
+	# Grab all the relevant stimuli and filter them down
+	allStim = fetchStimuli(count = count, modality = modality, forceImport = forceImport)
+	validStim = [stim for stim in allStim if stim.id not in badStims]
+	
+	return validStim
 	
 ###### Lab Users ######
 
@@ -151,38 +186,151 @@ def makeLabUser():
 ###### Sessions ######
 
 # Create a new session, and set its starTime to now.
-# Requires either a LabUser ID or PsiTurk UID,
-# plus a JSON string representing the emotions to be rated, in order
+# Requires either a LabUser ID or PsiTurk UID.
 # Returns the new Session object, or False if missing info
-def startNewSession(labUserId = None, psiturkUid = None, emotionOrder = None):
+def startNewSession(labUserId = None, psiturkUid = None):
 	# We need one form of ID or the other
-	if not ((labUserId or psiturkUid) and emotionOrder): return False
+	if not (labUserId or psiturkUid): return False
 	sesh = models.Session()
 	if labUserId: sesh.labUserId = labUserId
 	if psiturkUid: sesh.psiturkUid = psiturkUid
 	sesh.startTime = math.floor(time.time())
-	sesh.emotionOrder = emotionOrder
 	db.session.add(sesh)
 	db.session.commit()
 	return sesh
 
-# Endpoint to create a new session and set its starTime to now.
-# Requires either a LabUser ID or PsiTurk UID as `labUserId` or `psiturkUid`,
-# plus a JSON array of emotions to be rated, in order, as `emotionOrder`.
-# Responds with the new session's id.
-@app.route("/start-new-session", methods = ["POST"])
-def startSesh():
+# Find the most recent open session for a given user.
+# Requires either a LabUser ID or PsiTurk UID.
+# Returns the relevant Session object, or False if none is found.
+def retrieveOpenSession(labUserId = None, psiturkUid = None):
+	# We need one form of ID or the other
+	if not (labUserId or psiturkUid): return False
+	query = models.Session.query
+	if labUserId:
+		query = query.filter_by(labUserId = labUserId)
+	if psiturkUid:
+		query = query.filter_by(psiturkUid = psiturkUid)
+	# Sessions must have been started within a certain recency to be re-openable
+	timeout = 60*60 # one hour
+	expDate = math.floor(time.time()) - timeout
+	# Get the most recent open session for this user, if one exists
+	query = query.filter(\
+							models.Session.stopTime == None,\
+							models.Session.startTime >= expDate,\
+							models.Session.emotions != None,\
+							models.Session.sequence != None\
+						).order_by(models.Session.startTime.desc())
+	session = query.first()
+	if not session: return False
+	return session
+
+# Compute the portion of sequence that has yet to be completed on a given open session.
+# Works by checking the most recent rating associated with the session, matching it to a point
+# in the session's sequence, and returning all further points in the sequence.
+# Requires a Session object.
+# Returns a sequence array.
+def remainingSequenceForSession(session = None):
+	if session and session.sequence:
+		# Get the last rating saved from this session
+		lastRating = latestRatingForSession(session)
+		# If no ratings have been saved yet, return the entire sequence
+		if not lastRating: return json.loads(session.sequence)
+		remainingSeq = []
+		hitLastStim = False
+		seq = json.loads(session.sequence)
+		# Iterate through the stimuli in this sequence
+		for stimSeq in seq:
+			thisStim = stimSeq.get("stimulus")
+			if not hitLastStim:
+				# If the last stim to be rated hasn't been hit yet and this stim still isn't it,
+				# keep going and do nothing with this one; it's already done.
+				if thisStim != lastRating.stimulusId: continue
+				# If this stim is the last stim to be rated, note that we've reached it
+				# and figure out which stops have yet to be reached.
+				hitLastStim = True
+				starts = stimSeq.get("starts", [])
+				# The first start left is the moment the last rating was taken
+				firstStartLeftIdx = starts.index(float(lastRating.pollSec))
+				startsLeft = starts[firstStartLeftIdx:]
+				if len(startsLeft) < 1: continue
+				# If at least one start is left for this stim, add it to the remaining sequence
+				remainingSeq.append({"stimulus": thisStim, "starts": startsLeft})
+			else:
+				# If we've alredy hit and dealt with the last stim to be rated, go ahead and add
+				# the following ones in their entirety; they haven't been started yet.
+				remainingSeq.append(stimSeq)
+		return remainingSeq
+	return False
+
+# Endpoint to either link up to an open session or create a new one.
+# Requires either a LabUser ID or PsiTurk UID as `labUserId` or `psiturkUid`.
+# Responds with the new session's id and the stimuli valid for this user at this time
+# (i.e. that they have not already rated).
+# Also responds with emotions and sequence arrays, which are null if the session is new
+# and populated if it was already open.
+@app.route("/link-session", methods = ["POST"])
+def linkSession():
 	if not checkValidOrigin(request): return badOriginResponse
 	labUserId = request.form.get("labUserId")
 	psiturkUid = request.form.get("psiturkUid")
-	emotionOrder = request.form.get("emotionOrder")
-	if not ((labUserId or psiturkUid) and emotionOrder): return badRequestResponse
-	session = startNewSession(labUserId, psiturkUid, emotionOrder)
+	if not (labUserId or psiturkUid): return badRequestResponse
+	resuming = True
+	session = retrieveOpenSession(labUserId = labUserId, psiturkUid = psiturkUid)
+	# Start a new session if no open one was found
+	if not session:
+		resuming = False
+		session = startNewSession(labUserId = labUserId, psiturkUid = psiturkUid)
+	if not session: return failureResponse
+	validStim = validStimuliForUser(labUserId = labUserId, psiturkUid = psiturkUid)
+	# Make stimuli JSON-serializable
+	stimPrims = []
+	for thisStim in validStim:
+		primObj = {
+			"id": thisStim.id,
+			"filename": thisStim.filename,
+			"duration": thisStim.duration,
+			"modality": thisStim.modality,
+			"tags": thisStim.tags
+		}
+		stimPrims.append(primObj)
+	respDict = {
+		"sessionId": session.id,
+		"resuming": resuming,
+		"validStim": stimPrims,
+		"emotions": json.loads(session.emotions) if session.emotions else None, # Avoid trying to JSON-parse nothing
+		"sequence": remainingSequenceForSession(session)
+	}
+	response = jsonify(respDict)
+	return response
+
+# Set the details of an open session (i.e. its `emotions` and `sequence` fields).
+# Requires a session ID, plus JSON strings for emotions and sequence.
+# Returns the Session object that was updated.
+def setSessionDetails(sessionId = None, emotions = None, sequence = None):
+	if not sessionId and emotions and sequence: return False
+	sesh = models.Session.query.get(sessionId)
+	if not sesh: return False # Nothing with that ID found
+	sesh.emotions = emotions
+	sesh.sequence = sequence
+	db.session.commit()
+	return sesh
+	
+# Endpoint to set the details of an open session (i.e. its `emotions` and `sequence` fields).
+# Requires a session ID as `sessionId`, plus JSON strings for `emotions` and `sequence`.
+# Responds with the session's id.
+@app.route("/set-session-details", methods = ["POST"])
+def setSeshDetails():
+	if not checkValidOrigin(request): return badOriginResponse
+	sessionId = request.form.get("sessionId")
+	emotions = request.form.get("emotions")
+	sequence = request.form.get("sequence")
+	if not (sessionId and emotions and sequence): return badRequestResponse
+	session = setSessionDetails(sessionId, emotions = emotions, sequence = sequence)
 	if not session: return failureResponse
 	respDict = {"sessionId": session.id}
 	response = jsonify(respDict)
 	return response
-
+	
 # Stop an open session (i.e. set its stopTime to now).
 # Requires a session ID.
 # Returns the Session object that was ended.
@@ -230,6 +378,7 @@ def saveRating():
 	rating = models.Rating()
 	rating.sessionId = request.form.get("sessionId")
 	rating.stimulusId = request.form.get("stimulusId")
+	rating.timestamp = math.floor(time.time())
 	rating.pollSec = request.form.get("pollSec")
 	rating.sliceStartSec = request.form.get("sliceStartSec")
 	rating.reactionTime = request.form.get("reactionTime")
@@ -241,3 +390,12 @@ def saveRating():
 	respDict = {"ratingId": rating.id}
 	response = jsonify(respDict)
 	return response
+
+# Find the most recent rating associated with a given session.
+# Requires a Session object.
+# Returns the relevant Rating object, or false if none was found.
+def latestRatingForSession(session = None):
+	if not session and session.id: return False
+	rating = models.Rating.query.filter_by(sessionId = session.id).order_by(models.Rating.timestamp.desc()).first()
+	if not rating: return False
+	return rating

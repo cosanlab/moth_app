@@ -21,15 +21,17 @@ class Session(db.Model):
 	psiturkUid = db.Column(db.String(64))
 	startTime = db.Column(db.Integer)
 	stopTime = db.Column(db.Integer)
-	emotionOrder = db.Column(db.String(1024))
+	emotions = db.Column(db.String(1024))
+	sequence = db.Column(db.String(4096))
 
 class Rating(db.Model):
 	__tablename__ = 'ratings'
 	id = db.Column(db.Integer, primary_key= True, unique=True)
 	sessionId = db.Column(db.Integer, db.ForeignKey('sessions.id'))
 	stimulusId = db.Column(db.Integer, db.ForeignKey('stimuli.id'))
-	pollSec = db.Column(db.Integer)
-	sliceStartSec = db.Column(db.Integer)
+	timestamp = db.Column(db.Integer)
+	pollSec = db.Column(db.Float)
+	sliceStartSec = db.Column(db.Float)
 	reactionTime = db.Column(db.Float)
 	intensities = db.Column(db.String(1024))
 	ratingHistory = db.Column(db.String(16384))

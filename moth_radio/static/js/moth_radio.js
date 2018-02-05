@@ -3,16 +3,30 @@ var psiturkUid,
 	hasAccount,
 	labUserId,
 	sessionId,
-	shuffledEmotions,
-	selectedStim,
+	resumedSession,
+	stimuli,
+	emotions,
+	sequence,
 	humanFails = 0,
 	maxHumanFails = 2,
 	passedHuman,
 	visibilityListener;
 
-// Create stop times given a video's duration, a base sample interval in seconds,
+// Grab the stimulus with a given id from the jumble of stimuli sent from the server,
+// which aren't necessarily in any particular order.
+var stimWithId = function(id)
+{
+	var matches = $.grep(stimuli, function(obj, i)
+	{
+		return obj["id"] == id;
+	});
+	return matches[0];
+};
+
+// Create start times given a video's duration, a base sample interval in seconds,
 // the proportion of the sample interval by which to vary each stop point,
 // and the minimum offset between the beginning of the video and the first stop.
+// Returns an array of floats representing video segment start times.
 var createTimesForDurationAndSampleInterval = function(duration, sampleInterval, jitterRatio = 0.33, minOffset = 5)
 {
 	
@@ -137,6 +151,32 @@ var createTimesAvg = function(vidLength, sampleRate, avgDiff , numTrys= 10000, m
   }
 }
 
+// Build the sequence (i.e. which stimuli to use and when to poll for ratings)
+// Returns nothing but sets the `sequence` global variable
+// Called by finishTimeline() for new sessions
+var buildSequence = function()
+{
+	var newSeq = [];
+	
+	// Randomly select the requested number of stimuli
+	var selectedStim = jsPsych.randomization.sampleWithoutReplacement(stimuli, numStim);
+	
+	// Loop through the stimuli and generate stop times
+	for (var i = 0; i < selectedStim.length; i ++)
+	{
+		var stim = selectedStim[i],
+			starts = createTimesForDurationAndSampleInterval(stim.duration, sampleInterval),
+			stimObj = 
+			{
+				"stimulus": stim.id,
+				"starts": starts,
+			};
+		newSeq.push(stimObj);
+	}
+	
+	sequence = newSeq;
+}
+
 // Grab the psiturk UID if we have one
 psiturkUid = Turkframe.getUid();
 
@@ -197,7 +237,7 @@ if (!Turkframe.inTurkframeMode())
 					{
 						labUserId = data["userId"];
 						accountSuccess = true;
-						finishTimeline();
+						continuePreTrialTimeline();
 						// Custom flag added to the loading screen so we don't accidentally clear something else
 						if (jsPsych.currentTrial()["isLoadScreen"] === true)
 						{
@@ -271,7 +311,110 @@ if (!Turkframe.inTurkframeMode())
 }
 else
 {
-	finishTimeline();
+	continuePreTrialTimeline();
+}
+
+var continuePreTrialTimeline = function()
+{
+	var timelineToAdd = [];
+	
+	// Make mturk users prove they're not bots
+	
+	if (Turkframe.inTurkframeMode())
+	{
+		var numerals = [1, 2, 3, 4],
+			words = ["one", "two", "three", "four"],
+			numIds = _.sample(_.range(0, 4), 2);
+		
+		// Check if someone is human or not
+		var humanTestBlock =
+		{
+			type: "survey-text",
+			preamble: "Just to make sure you're human, what is <strong>" + words[numIds[0]] +"</strong> plus <strong>" + words[numIds[1]] + "</strong>? Answer with a single numeral.",
+			// Have to specify all properties in `questions` because of a bug in the current version of
+			// the survey-text plugin (as of Jan 17, 2018).
+			questions: [{prompt: "Answer:", rows: 1, columns: 20, value: "",}],
+			on_finish: function(data)
+			{
+				answers = JSON.parse(data.responses);
+				var answer = answers["Q0"];
+				if (answer == numerals[numIds[0]] + numerals[numIds[1]])
+				{
+					passedHuman = true;
+				}
+				else
+				{
+					humanFails += 1;
+				}
+				jsPsych.finishTrial();
+			},
+		};
+		
+		// If the test is failed, either tell the user to try again or that they're getting booted.
+		var humanErrorBlock =
+		{
+			type: "html-keyboard-response",
+			on_start: function(trial)
+			{
+				var errorString;
+				if (humanFails <= maxHumanFails) errorString = "Sorry, that was not the correct answer. Please try again."
+				else errorString = "Sorry, too many incorrect answers were entered. This trial will not continue."
+				var stimulus = "<p>" + errorString + "</p><p>Press any key to continue.</p>";
+				trial.stimulus = stimulus;
+			},
+			on_finish: function()
+			{
+				if (humanFails >= maxHumanFails)
+				{
+					console.log("abort trial");
+				}
+				jsPsych.finishTrial();
+			},
+		};
+		
+		var humanErrConditional = 
+		{
+			timeline: [humanErrorBlock],
+			conditional_function: function()
+			{
+				return !passedHuman;
+			},
+		}
+		var humanTestLoop =
+		{
+			timeline: [humanTestBlock, humanErrConditional],
+			loop_function: function()
+			{
+				return !passedHuman;
+			},
+		};
+		timelineToAdd.push(humanTestLoop);
+	}
+	
+	// Instructions message, creating the session when done
+	var instructionsBlock =
+	{
+		type: "html-keyboard-response",
+		stimulus: "<p>You are going to watch a video clip. The clip will pause  " +
+			"and random times and you will be presented with a group of ratings to make.</p>" +
+			"<p>Please rate your emotions at the time of the rating," +
+			"and press the spacebar when you are finished to continue watching the video clip.</p>" +
+			"<p>Press any key to begin.</p>",
+	};
+	timelineToAdd.push(instructionsBlock);
+	
+	// Shown while waiting for the AJAX request to finish. User can't do anything; the callbacks clear this screen when appropriate
+	var loadingBlock =
+	{
+		type: "html-keyboard-response",
+		stimulus: "<p>Loading...</p>",
+		choices: jsPsych.NO_KEYS,
+		isLoadScreen: true, // Custom flag so we can make sure we're not clearing something else
+		on_start: linkSession,
+	};
+	timelineToAdd.push(loadingBlock);
+	
+	jsPsych.addNodeToEndOfTimeline({timeline: timelineToAdd}, new Function); // Apparent bug as of Feb 3, 2018 requires empty callback
 }
 
 /*var check_consent = function(elem) {
@@ -292,22 +435,27 @@ var consent = {
   check_fn: check_consent
 }; */
 
-// Function to tell the server to start a new session for us, and get its ID.
-// Called after the instructions are dismissed
-var createSession = function()
+// Tell server to make new sesh or link to existing
+// Called after the instructions are dismissed and the loading screen is displayed
+// Calls finishTimeline() when done
+var linkSession = function()
 {
 	$.post(
-		"start-new-session",
+		"link-session",
 		{
 			psiturkUid: psiturkUid ? psiturkUid : null,
 			labUserId: labUserId ? labUserId : null,
-			emotionOrder: JSON.stringify(shuffledEmotions),
 		},
 		function(data)
 		{
 			if (data && data["sessionId"])
 			{
-				sessionId = Number(data["sessionId"]);
+				sessionId = Number(data["sessionId"]); // Always sent
+				resumedSession = Boolean(data["resuming"]); // Always sent
+				stimuli = data["validStim"]; // Always sent
+				emotions = data["emotions"]; // Empty when not resuming open session
+				sequence = data["sequence"]; // Empty when not resuming open session
+				finishTimeline();
 			}
 			else
 			{
@@ -327,12 +475,12 @@ var createSession = function()
 // Tools to build repetitive blocks: videos, ratings, and messages between videos
 
 // Build a video block
-var videoBlockForStimAndTimes = function(stim, startTime, stopTime)
+var videoBlockForStimAndTimes = function(stimId, startTime, stopTime)
 {
 	var block =
 	{
 		type: "video",
-		sources: [stim.path],
+		sources: [stimBase + stimWithId(stimId).filename],
 		start: startTime,
 		stop: stopTime,
 		on_start: function() { $(document).on("visibilitychange", visibilityListener); },
@@ -342,11 +490,11 @@ var videoBlockForStimAndTimes = function(stim, startTime, stopTime)
 };
 
 // Build a rating block
-var ratingBlockForStimAndTimes = function(stim, startTime, stopTime)
+var ratingBlockForStimAndTimes = function(stimId, startTime, stopTime)
 {
 	var block = {
 		type: "rapid-rate",
-		items: shuffledEmotions,
+		items: emotions,
 		logCommits: true,
 		topMsg: "Please rate each of the following emotions:",
 		bottomMsg: "Press 'space' when finished.",
@@ -355,7 +503,7 @@ var ratingBlockForStimAndTimes = function(stim, startTime, stopTime)
 			var payload =
 			{
 				sessionId: sessionId,
-				stimulusId: stim.id,
+				stimulusId: stimId,
 				pollSec: stopTime,
 				sliceStartSec: startTime,
 				reactionTime: ratingData["rt"],
@@ -390,8 +538,11 @@ var inBetweenBlock =
 	stimulus: "<p> Next video will start soon.</p><p>Click the spacebar to begin.</p>",
 };
 
+// Finish constructing the timeline by adding the actual videos and ratings
+// Called by linkSession()
 var finishTimeline = function()
-{
+{	
+	// Make sure that users are actually watching the video
 	visibilityListener = function(event)
 	{
 		if (document.visibilityState == "hidden")
@@ -403,124 +554,91 @@ var finishTimeline = function()
 		}
 	};
 	
+	// If this is a new session, generate `emotions` and `sequence` values for it and send them to the server
+	if (!resumedSession)
+	{
+		// Each user will have emotions presented in a random order, but the order will remain consistent for that user
+		emotions = jsPsych.randomization.shuffle(["Anger", "Pride", "Elation", "Joy", "Satisfaction", "Relief", "Hope", "Interest", "Surprise", "Sadness", "Fear", "Shame", "Guilt", "Envy", "Disgust", "Contempt",]);
+		
+		// Build the sequence (sets the `sequence` global)
+		buildSequence();
+	}
+	
 	var timelineToAdd = [];
 	
-	var numerals = [1, 2, 3, 4],
-		words = ["one", "two", "three", "four"],
-		numIds = _.sample(_.range(0, 4), 2);
-		
-	
-	// Check if someone is human or not
-	var humanTestBlock =
-	{
-		type: "survey-text",
-		preamble: "Just to make sure you're human, what is <strong>" + words[numIds[0]] +"</strong> plus <strong>" + words[numIds[1]] + "</strong>? Answer with a single numeral.",
-		// Have to specify all properties in `questions` because of a bug in the current version of
-		// the survey-text plugin (as of Jan 17, 2018).
-		questions: [{prompt: "Answer:", rows: 1, columns: 20, value: "",}],
-		on_finish: function(data)
-		{
-			answers = JSON.parse(data.responses);
-			var answer = answers["Q0"];
-			if (answer == numerals[numIds[0]] + numerals[numIds[1]])
-			{
-				passedHuman = true;
-			}
-			else
-			{
-				humanFails += 1;
-			}
-			jsPsych.finishTrial();
-		},
-	};
-	
-	// If the test is failed, either tell the user to try again or that they're getting booted.
-	var humanErrorBlock =
-	{
-		type: "html-keyboard-response",
-		on_start: function(trial)
-		{
-			var errorString;
-			if (humanFails <= maxHumanFails) errorString = "Sorry, that was not the correct answer. Please try again."
-			else errorString = "Sorry, too many incorrect answers were entered. This trial will not continue."
-			var stimulus = "<p>" + errorString + "</p><p>Press any key to continue.</p>";
-			trial.stimulus = stimulus;
-		},
-		on_finish: function()
-		{
-			if (humanFails >= maxHumanFails)
-			{
-				console.log("abort trial");
-			}
-			jsPsych.finishTrial();
-		},
-	};
-	
-	var humanErrConditional = 
-	{
-		timeline: [humanErrorBlock],
-		conditional_function: function()
-		{
-			return !passedHuman;
-		},
-	}
-	var humanTestLoop =
-	{
-		timeline: [humanTestBlock, humanErrConditional],
-		loop_function: function()
-		{
-			return !passedHuman;
-		},
-	};
-	timelineToAdd.push(humanTestLoop);
-	
-	// Instructions message, creating the session when done
-	var instructionsBlock =
-	{
-		type: "html-keyboard-response",
-		stimulus: "<p>You are going to watch a video clip. The clip will pause  " +
-			"and random times and you will be presented with a group of ratings to make.</p>" +
-			"<p>Please rate your emotions at the time of the rating," +
-			"and press the spacebar when you are finished to continue watching the video clip.</p>" +
-			"<p>Press any key to begin.</p>",
-		on_finish: createSession,
-	};
-	timelineToAdd.push(instructionsBlock);
-	
-	// Each user will have emotions presented in a random order, but the order will remain consistent for that user
-	shuffledEmotions = jsPsych.randomization.shuffle(["Anger", "Pride", "Elation", "Joy", "Satisfaction", "Relief", "Hope", "Interest", "Surprise", "Sadness", "Fear", "Shame", "Guilt", "Envy", "Disgust", "Contempt",]);
-	// Randomly select the requested number of stimuli
-	selectedStim = jsPsych.randomization.sampleWithoutReplacement(stimuli, numStim);
 	// Loop through and build repetitive blocks 
-	for (var i = 0; i < selectedStim.length; i ++)
+	for (var i = 0; i < sequence.length; i ++)
 	{
-		stim = selectedStim[i];
-		duration = stim.duration;
-		startTimes = createTimesForDurationAndSampleInterval(duration, sampleInterval);
-		for (var j = 0; j < startTimes.length; j ++)
+		var stimObj = sequence[i],
+			thisStim = stimObj["stimulus"],
+			starts = stimObj["starts"];
+		
+		for (var j = 0; j < starts.length; j ++)
 		{
-			var start = startTimes[j];
-			var end;
-			// Either end the clip when the next one starts, of, if it's the last one, when the whole video is over.
-			if (startTimes[j+1]) end = startTimes[j+1];
-			else end = duration;
+			var thisStart = starts[j],
+				stop;
+			// Stop at the next start time if there is one, or the end of the video if not
+			if (j < (starts.length - 1)) stop = starts[j + 1];
+			else stop = stimWithId(thisStim).duration;
 			
-			timelineToAdd.push(videoBlockForStimAndTimes(stim, start, end));
-			timelineToAdd.push(ratingBlockForStimAndTimes(stim, start, end));
+			timelineToAdd.push(videoBlockForStimAndTimes(thisStim, thisStart, stop));
+			timelineToAdd.push(ratingBlockForStimAndTimes(thisStim, thisStart, stop));
 		}
 		
 		// Add an in-between block if there is another video to play
-		if (i < (selectedStim.length - 1)) timelineToAdd.push(inBetweenBlock);
+		if (i < (sequence.length -1 )) timelineToAdd.push(inBetweenBlock);
 	}
 	
 	var endMsg =
 	{
 		type: "html-keyboard-response",
 		stimulus: "Thank you for participating!",
+		on_start: stopSession,
 	 };
 	timelineToAdd.push(endMsg);
 	
-	jsPsych.addNodeToEndOfTimeline({timeline: timelineToAdd}, new Function);
+	jsPsych.addNodeToEndOfTimeline({timeline: timelineToAdd}, new Function); // Apparent bug as of Feb 3, 2018 requires empty callback
+	
+	if (!resumedSession)
+	{
+		// Send the session details to the server, then clear the loading screen and move on
+		$.post(
+			"set-session-details",
+			{
+				sessionId: sessionId,
+				emotions: JSON.stringify(emotions),
+				sequence: JSON.stringify(sequence),
+			},
+			function(data)
+			{
+				if ((data && data["sessionId"]))
+				{
+					// Clear the loading screen now and move on
+					if (jsPsych.currentTrial()["isLoadScreen"] === true)
+					{
+						jsPsych.finishTrial();
+					}
+				}
+				else
+				{
+					console.log("Error: couldn't set session details: no sessionId returned by server.");
+				}
+			},
+			"json"
+		).fail(function(data)
+		{
+			console.log("Error: couldn't set session details:");
+			console.log(data.responseJSON);
+		});
+	}
+	else
+	{
+		// Clear the loading screen now and move on
+		if (jsPsych.currentTrial()["isLoadScreen"] === true)
+		{
+			jsPsych.finishTrial();
+		}
+	}
 };
 
 // Fucntion to tell the server the session is done.
@@ -554,5 +672,4 @@ var stopSession = function()
 // Run the experiment
 jsPsych.init({
 	timeline: timeline,
-	on_finish: stopSession,
 });
