@@ -1,5 +1,6 @@
 // Globals
 var psiturkUid,
+	psiturkWorkerId,
 	hasAccount,
 	labUserId,
 	sessionId,
@@ -179,6 +180,7 @@ var buildSequence = function()
 
 // Grab the psiturk UID if we have one
 psiturkUid = Turkframe.getUid();
+psiturkWorkerId = Turkframe.getWorkerId();
 
 // Start building the timeline
 var timeline = [];
@@ -308,10 +310,6 @@ if (!Turkframe.inTurkframeMode())
 	
 	// Add the whole loop to the main timeline
 	timeline.push(loginLoop);
-}
-else
-{
-	continuePreTrialTimeline();
 }
 
 var continuePreTrialTimeline = function()
@@ -444,6 +442,7 @@ var linkSession = function()
 		"link-session",
 		{
 			psiturkUid: psiturkUid ? psiturkUid : null,
+			psiturkWorkerId: psiturkWorkerId ? psiturkWorkerId : null,
 			labUserId: labUserId ? labUserId : null,
 		},
 		function(data)
@@ -673,3 +672,9 @@ var stopSession = function()
 jsPsych.init({
 	timeline: timeline,
 });
+
+// If no login work needs to be done, start the rest of the pre-trial timeline
+if (Turkframe.inTurkframeMode())
+{
+	continuePreTrialTimeline();
+}

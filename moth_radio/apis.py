@@ -90,20 +90,20 @@ def fetchStimuli(count = None, modality = None, forceImport = False):
 	return results
 
 # Find the stimuli that a given user has not already 	rated.
-# Requires a labUserId or a psiturkUid.
+# Requires a labUserId or a psiturkWorkerId.
 # Returns an array of Stimulus objects.
-def validStimuliForUser(labUserId = None, psiturkUid = None, count = None, modality = None, forceImport = None):
-	if not (labUserId or psiturkUid): return False
+def validStimuliForUser(labUserId = None, psiturkWorkerId = None, count = None, modality = None, forceImport = None):
+	if not (labUserId or psiturkWorkerId): return False
 	
 	# Find closed sessions for this user
 	query = models.Session.query.filter(models.Session.stopTime != None)
 	if labUserId:
 		query = query.filter_by(labUserId = labUserId)
-	if psiturkUid:
-		query = query.filter_by(psiturkUid = psiturkUid)
+	if psiturkWorkerId:
+		query = query.filter_by(psiturkWorkerId = psiturkWorkerId)
 	sessions = query.all()
 	# Grab an open session if there is one and add it to the list
-	openSesh = retrieveOpenSession(labUserId = labUserId, psiturkUid = psiturkUid)
+	openSesh = retrieveOpenSession(labUserId = labUserId, psiturkWorkerId = psiturkWorkerId)
 	if openSesh: sessions.append(openSesh)
 	
 	badStims = []
@@ -186,30 +186,31 @@ def makeLabUser():
 ###### Sessions ######
 
 # Create a new session, and set its starTime to now.
-# Requires either a LabUser ID or PsiTurk UID.
+# Requires either a LabUser ID or PsiTurk UID + worker ID.
 # Returns the new Session object, or False if missing info
-def startNewSession(labUserId = None, psiturkUid = None):
+def startNewSession(labUserId = None, psiturkUid = None, psiturkWorkerId = None):
 	# We need one form of ID or the other
-	if not (labUserId or psiturkUid): return False
+	if not (labUserId or (psiturkUid and psiturkWorkerId)): return False
 	sesh = models.Session()
 	if labUserId: sesh.labUserId = labUserId
 	if psiturkUid: sesh.psiturkUid = psiturkUid
+	if psiturkWorkerId: sesh.psiturkWorkerId = psiturkWorkerId
 	sesh.startTime = math.floor(time.time())
 	db.session.add(sesh)
 	db.session.commit()
 	return sesh
 
 # Find the most recent open session for a given user.
-# Requires either a LabUser ID or PsiTurk UID.
+# Requires either a LabUser ID or PsiTurk worker ID.
 # Returns the relevant Session object, or False if none is found.
-def retrieveOpenSession(labUserId = None, psiturkUid = None):
+def retrieveOpenSession(labUserId = None, psiturkWorkerId = None):
 	# We need one form of ID or the other
-	if not (labUserId or psiturkUid): return False
+	if not (labUserId or psiturkWorkerId): return False
 	query = models.Session.query
 	if labUserId:
 		query = query.filter_by(labUserId = labUserId)
-	if psiturkUid:
-		query = query.filter_by(psiturkUid = psiturkUid)
+	if psiturkWorkerId:
+		query = query.filter_by(psiturkWorkerId = psiturkWorkerId)
 	# Sessions must have been started within a certain recency to be re-openable
 	timeout = 60*60 # one hour
 	expDate = math.floor(time.time()) - timeout
@@ -263,7 +264,7 @@ def remainingSequenceForSession(session = None):
 	return False
 
 # Endpoint to either link up to an open session or create a new one.
-# Requires either a LabUser ID or PsiTurk UID as `labUserId` or `psiturkUid`.
+# Requires either a LabUser ID or PsiTurk UID + worker ID as `labUserId` or `psiturkUid` + `psiturkWorkerId`.
 # Responds with the new session's id and the stimuli valid for this user at this time
 # (i.e. that they have not already rated).
 # Also responds with emotions and sequence arrays, which are null if the session is new
@@ -273,15 +274,16 @@ def linkSession():
 	if not checkValidOrigin(request): return badOriginResponse
 	labUserId = request.form.get("labUserId")
 	psiturkUid = request.form.get("psiturkUid")
-	if not (labUserId or psiturkUid): return badRequestResponse
+	psiturkWorkerId = request.form.get("psiturkWorkerId")
+	if not (labUserId or (psiturkUid and psiturkWorkerId)): return badRequestResponse
 	resuming = True
-	session = retrieveOpenSession(labUserId = labUserId, psiturkUid = psiturkUid)
+	session = retrieveOpenSession(labUserId = labUserId, psiturkWorkerId = psiturkWorkerId)
 	# Start a new session if no open one was found
 	if not session:
 		resuming = False
-		session = startNewSession(labUserId = labUserId, psiturkUid = psiturkUid)
+		session = startNewSession(labUserId = labUserId, psiturkUid = psiturkUid, psiturkWorkerId = psiturkWorkerId)
 	if not session: return failureResponse
-	validStim = validStimuliForUser(labUserId = labUserId, psiturkUid = psiturkUid)
+	validStim = validStimuliForUser(labUserId = labUserId, psiturkWorkerId = psiturkWorkerId)
 	# Make stimuli JSON-serializable
 	stimPrims = []
 	for thisStim in validStim:

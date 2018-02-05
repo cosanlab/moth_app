@@ -19,6 +19,7 @@ class Session(db.Model):
 	id = db.Column(db.Integer, primary_key= True, unique=True)
 	labUserId = db.Column(db.Integer, db.ForeignKey('labUsers.id'))
 	psiturkUid = db.Column(db.String(64))
+	psiturkWorkerId = db.Column(db.String(64))
 	startTime = db.Column(db.Integer)
 	stopTime = db.Column(db.Integer)
 	emotions = db.Column(db.String(1024))
