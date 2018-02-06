@@ -17,11 +17,11 @@ import json, math, time
 ###### Infrastructure / Helpers ######
 
 # Whitelist for origins to accept.
-allowedOrigins = ["http://cosanlabradio.dartmouth.edu"]
+allowedOrigins = ["http://cosanlabradio.dartmouth.edu/"]
 # Origins added to the whitelist only while debugging.
 if app.debug:
-	allowedOrigins.append("http://localhost:5000")
-	allowedOrigins.append("chrome-extension://cokgbflfommojglbmbpenpphppikmonn") #'REST Console' Chrome app, useful for debugging
+	allowedOrigins.append("http://localhost:5000/")
+	allowedOrigins.append("chrome-extension://cokgbflfommojglbmbpenpphppikmonn/") #'REST Console' Chrome app, useful for debugging
 	
 # A generic response to send when something is wrong with a request.
 badRequestResponse = app.response_class(
@@ -49,7 +49,9 @@ failureResponse = app.response_class(
 
 # Check if a request's origin is on the whitelist.
 def checkValidOrigin(request):
-	origin = request.environ.get("HTTP_ORIGIN")
+	origin = request.environ.get("HTTP_REFERER")
+	import pdb
+	# pdb.set_trace()
 	if origin and origin in allowedOrigins:
 		return True
 	else:
