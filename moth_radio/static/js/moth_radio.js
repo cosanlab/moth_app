@@ -482,6 +482,8 @@ var videoBlockForStimAndTimes = function(stimId, startTime, stopTime)
 		sources: [stimBase + stimWithId(stimId).filename],
 		start: startTime,
 		stop: stopTime,
+		indicateLoading: true,
+		promptEnableAutoplay: true,
 		on_start: function() { $(document).on("visibilitychange", visibilityListener); },
 		on_finish: function() { $(document).off("visibilitychange", visibilityListener); },
 	};
