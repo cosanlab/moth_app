@@ -50,10 +50,11 @@ failureResponse = app.response_class(
 # Check if a request's origin is on the whitelist.
 def checkValidOrigin(request):
 	origin = request.environ.get("HTTP_REFERER")
-	if origin and origin in allowedOrigins:
-		return True
-	else:
-		return False
+	if not origin: return False
+	for thisOrigin in allowedOrigins:
+		if origin.startswith(thisOrigin):
+			return True
+	return False
 
 ###### Stimuli	######
 
