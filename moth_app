@@ -3,7 +3,10 @@ server {
 	server_name cosanlabradio.dartmouth.edu;
 
 	location /moth { return 301 /moth/; }
-	location /moth/ { try_files $uri @moth; }
+	location ~ ^/moth/(.*)$ {
+		root /var/www/moth_app/moth_radio; 
+		try_files /$1 @moth;
+	}
 	location @moth {
 		include uwsgi_params;
 		uwsgi_pass unix:/var/www/moth_app/moth_app.sock;
