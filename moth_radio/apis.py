@@ -17,7 +17,7 @@ import json, math, time
 ###### Infrastructure / Helpers ######
 
 # Whitelist for origins to accept.
-allowedOrigins = ["http://cosanlabradio.dartmouth.edu/"]
+allowedOrigins = ["http://cosanlabradio.dartmouth.edu/", "https://cosanlabradio.dartmouth.edu/"]
 # Origins added to the whitelist only while debugging.
 if app.debug:
 	allowedOrigins.append("http://localhost:5000/")
