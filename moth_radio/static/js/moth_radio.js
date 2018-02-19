@@ -573,7 +573,11 @@ var finishTimeline = function()
 		
 		// Build the sequence (sets the `sequence` global)
 		var seqSuccess = buildSequence();
-		if (!seqSuccess) failOurFault();
+		if (!seqSuccess) 
+		{
+			jsPsych.endExperiment("Sorry, you have already watched all available videos. Thank you for your participation.");
+			return;
+		}
 	}
 	
 	var timelineToAdd = [];
@@ -688,6 +692,7 @@ var failOurFault = function()
 	var errMsg = "We're sorry, an error occured. This task will be ended.";
 	if (Turkframe.inTurkframeMode()) errMsg += " You WILL be paid in full for this HIT.";
 	alert(errMsg);
+	jsPsych.endExperiment(errMsg);
 	Turkframe.messageFinished({sessionId: sessionId});
 }
 

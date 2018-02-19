@@ -92,6 +92,7 @@ def fetchStimuli(count = None, modality = None, forceImport = False):
 
 # Find the stimuli that a given user has not already 	rated.
 # Requires a labUserId or a psiturkWorkerId.
+# Also takes arguments to pass to fetchStimuli().
 # Returns an array of Stimulus objects.
 def validStimuliForUser(labUserId = None, psiturkWorkerId = None, count = None, modality = None, forceImport = None):
 	if not (labUserId or psiturkWorkerId): return False
