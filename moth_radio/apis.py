@@ -351,14 +351,17 @@ def stopSession(sessionId = None):
 
 # Endpoint to stop an open session (i.e. set its stopTime to now).
 # Requires a session ID as `sessionId`.
+# Optinally accepts an `exitSurvey` JSON string. 
 # Responds with the session's id.
 @app.route("/stop-session", methods = ["POST"])
 def stopSesh():
 	if not checkValidOrigin(request): return badOriginResponse
 	sessionId = request.form.get("sessionId")
+	exitSurvey = request.form.get("exitSurvey")
 	if not sessionId: return badRequestResponse
 	session = stopSession(sessionId)
 	if not session: return failureResponse
+	session.exitSurvey = exitSurvey
 	respDict = {"sessionId": session.id}
 	response = jsonify(respDict)
 	return response

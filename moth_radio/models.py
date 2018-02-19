@@ -25,6 +25,7 @@ class Session(db.Model):
 	stopTime = db.Column(db.Integer)
 	emotions = db.Column(db.String(1024))
 	sequence = db.Column(db.String(4096))
+	exitSurvey = db.Column(db.String(16384))
 
 class Rating(db.Model):
 	__tablename__ = 'ratings'

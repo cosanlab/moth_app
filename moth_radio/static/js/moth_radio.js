@@ -11,7 +11,8 @@ var psiturkUid,
 	humanFails = 0,
 	maxHumanFails = 2,
 	passedHuman,
-	visibilityListener;
+	visibilityListener,
+	exitSurvey;
 
 // Grab the stimulus with a given id from the jumble of stimuli sent from the server,
 // which aren't necessarily in any particular order.
@@ -605,6 +606,33 @@ var finishTimeline = function()
 		if (i < (sequence.length -1 )) timelineToAdd.push(inBetweenBlock);
 	}
 	
+	var surveyBlock =
+	{
+		type: "survey-text",
+		preamble: "Thank you for finishing this video. Before you go, please answer the following questions.<br /><em>Note: if you have completed this task before, you are not required to answer these questions again.</em>",
+		// Have to specify all properties in `questions` because of a bug in the current version of
+		// the survey-text plugin (as of Jan 17, 2018).
+		questions: [{prompt: "Your Gender:", rows: 1, columns: 20, value: "",},
+					{prompt: "Your Age:", rows: 1, columns: 20, value: "",},
+					{prompt: "Feedback on this Task:", rows: 6, columns: 40, value: "",}],
+		on_finish: function(data)
+		{
+			var answers = JSON.parse(data.responses),
+				questions = this.questions,
+				surveyData = {};
+			// Necessary b/c the jsPsych plugin returns something like {Q0: "answer", Q1: "answer"} without actual question names
+			Object.keys(answers).forEach(function(key)
+			{
+				var questionNum = parseInt(key.slice(1)), // Strip the leading 'Q' and get the numeric index
+					question = questions[questionNum].prompt,
+					answer = answers[key];
+				surveyData[question] = answer;
+			});
+			exitSurvey = JSON.stringify(surveyData);
+		},
+	};
+	timelineToAdd.push(surveyBlock);
+	
 	var endMsg =
 	{
 		type: "html-keyboard-response",
@@ -667,7 +695,8 @@ var stopSession = function()
 	$.post(
 		"stop-session",
 		{
-			sessionId: sessionId
+			sessionId: sessionId,
+			exitSurvey: exitSurvey,
 		},
 		function(data)
 		{
