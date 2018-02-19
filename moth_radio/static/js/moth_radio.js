@@ -366,18 +366,16 @@ var continuePreTrialTimeline = function()
 			on_start: function(trial)
 			{
 				var errorString;
-				if (humanFails <= maxHumanFails) errorString = "Sorry, that was not the correct answer. Please try again."
-				else errorString = "Sorry, too many incorrect answers were entered. This trial will not continue."
-				var stimulus = "<p>" + errorString + "</p><p>Press any key to continue.</p>";
-				trial.stimulus = stimulus;
+				if (humanFails <= maxHumanFails) errorString = "<p>Sorry, that was not the correct answer. Please try again.</p><p>Press any key to continue.</p>"
+				else errorString = "<p>Sorry, too many incorrect answers were entered. This trial will not continue.</p>"
+				trial.stimulus = errorString;
 			},
 			on_finish: function()
 			{
-				if (humanFails >= maxHumanFails)
+				if (humanFails > maxHumanFails)
 				{
-					console.log("abort trial");
+					jsPsych.endExperiment("Sorry, too many incorrect answers were entered. This trial will not continue.");
 				}
-				jsPsych.finishTrial();
 			},
 		};
 		
