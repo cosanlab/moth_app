@@ -189,13 +189,14 @@ def makeLabUser():
 # Create a new session, and set its starTime to now.
 # Requires either a LabUser ID or PsiTurk UID + worker ID.
 # Returns the new Session object, or False if missing info
-def startNewSession(labUserId = None, psiturkUid = None, psiturkWorkerId = None):
+def startNewSession(labUserId = None, psiturkUid = None, psiturkWorkerId = None, wave = None):
 	# We need one form of ID or the other
 	if not (labUserId or (psiturkUid and psiturkWorkerId)): return False
 	sesh = models.Session()
 	if labUserId: sesh.labUserId = labUserId
 	if psiturkUid: sesh.psiturkUid = psiturkUid
 	if psiturkWorkerId: sesh.psiturkWorkerId = psiturkWorkerId
+	if wave: sesh.wave = wave
 	sesh.startTime = math.floor(time.time())
 	db.session.add(sesh)
 	db.session.commit()
@@ -265,7 +266,8 @@ def remainingSequenceForSession(session = None):
 	return False
 
 # Endpoint to either link up to an open session or create a new one.
-# Requires either a LabUser ID or PsiTurk UID + worker ID as `labUserId` or `psiturkUid` + `psiturkWorkerId`.
+# Requires either a LabUser ID or PsiTurk UID + worker ID as `labUserId` or `psiturkUid` + `psiturkWorkerId`,
+# and a wave identifier as `wave`.
 # Responds with the new session's id and the stimuli valid for this user at this time
 # (i.e. that they have not already rated).
 # Also responds with emotions and sequence arrays, which are null if the session is new
@@ -276,13 +278,14 @@ def linkSession():
 	labUserId = request.form.get("labUserId")
 	psiturkUid = request.form.get("psiturkUid")
 	psiturkWorkerId = request.form.get("psiturkWorkerId")
+	wave = request.form.get("wave")
 	if not (labUserId or (psiturkUid and psiturkWorkerId)): return badRequestResponse
 	resuming = True
 	session = retrieveOpenSession(labUserId = labUserId, psiturkWorkerId = psiturkWorkerId)
 	# Start a new session if no open one was found
 	if not session:
 		resuming = False
-		session = startNewSession(labUserId = labUserId, psiturkUid = psiturkUid, psiturkWorkerId = psiturkWorkerId)
+		session = startNewSession(labUserId = labUserId, psiturkUid = psiturkUid, psiturkWorkerId = psiturkWorkerId, wave = wave)
 	if not session: return failureResponse
 	validStim = validStimuliForUser(labUserId = labUserId, psiturkWorkerId = psiturkWorkerId)
 	# Make stimuli JSON-serializable

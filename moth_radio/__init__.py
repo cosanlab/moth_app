@@ -7,9 +7,11 @@ from flask_sqlalchemy import SQLAlchemy
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__)
+app.config['wave'] = "0.0"
 app.config['num_stops'] = 5
 app.config['num_stim'] = 1
-app.config['sample_interval'] = 30
+app.config['sample_interval'] = 60
+app.config['sample_time_jitter'] = 0.33
 app.config['stim_base'] = "static/stim/"
 app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://moth_radio:yourPassword@localhost/moth_radio" # DON'T COMMIT PASSWORDS!
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True

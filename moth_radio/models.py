@@ -20,6 +20,7 @@ class Session(db.Model):
 	labUserId = db.Column(db.Integer, db.ForeignKey('labUsers.id'))
 	psiturkUid = db.Column(db.String(64))
 	psiturkWorkerId = db.Column(db.String(64))
+	wave = db.Column(db.String(32))
 	startTime = db.Column(db.Integer)
 	stopTime = db.Column(db.Integer)
 	emotions = db.Column(db.String(1024))

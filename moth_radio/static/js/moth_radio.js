@@ -28,7 +28,7 @@ var stimWithId = function(id)
 // the proportion of the sample interval by which to vary each stop point,
 // and the minimum offset between the beginning of the video and the first stop.
 // Returns an array of floats representing video segment start times.
-var createTimesForDurationAndSampleInterval = function(duration, sampleInterval, jitterRatio = 0.33, minOffset = 5)
+var createTimesForDurationAndSampleInterval = function(duration, sampleInterval, jitterRatio = 0.33, minOffset = 30)
 {
 	
 	var roundToTenths = function(number)
@@ -41,7 +41,7 @@ var createTimesForDurationAndSampleInterval = function(duration, sampleInterval,
 		minDuration = roundToTenths(sampleInterval - jitterSeconds / 2),
 		maxDuration = roundToTenths(sampleInterval + jitterSeconds / 2),
 		possibleDurations = _.range(minDuration, maxDuration, 0.1).map(function(duration){return roundToTenths(duration)}),
-		possibleOffsets = _.range(minOffset, minDuration, 0.1).map(function(duration){return roundToTenths(duration)}),
+		possibleOffsets = _.range(minOffset, minOffset + (sampleInterval / 2), 0.1).map(function(duration){return roundToTenths(duration)}),
 		offset = _.sample(possibleOffsets);
 
 	var starts = [0, offset];
@@ -153,10 +153,13 @@ var createTimesAvg = function(vidLength, sampleRate, avgDiff , numTrys= 10000, m
 }
 
 // Build the sequence (i.e. which stimuli to use and when to poll for ratings)
-// Returns nothing but sets the `sequence` global variable
+// Returns true if successful or false if a failure occurred
+// Sets the `sequence` global variable
 // Called by finishTimeline() for new sessions
 var buildSequence = function()
 {
+	if (stimuli.length < numStim) return false;
+	
 	var newSeq = [];
 	
 	// Randomly select the requested number of stimuli
@@ -166,7 +169,7 @@ var buildSequence = function()
 	for (var i = 0; i < selectedStim.length; i ++)
 	{
 		var stim = selectedStim[i],
-			starts = createTimesForDurationAndSampleInterval(stim.duration, sampleInterval),
+			starts = createTimesForDurationAndSampleInterval(stim.duration, sampleInterval, sampleTimeJitter),
 			stimObj = 
 			{
 				"stimulus": stim.id,
@@ -176,6 +179,9 @@ var buildSequence = function()
 	}
 	
 	sequence = newSeq;
+	
+	return true;
+	
 }
 
 // Grab the psiturk UID if we have one
@@ -264,6 +270,11 @@ if (!Turkframe.inTurkframeMode())
 				if ((data.status == 500 || data.status == 400) && jsPsych.currentTrial()["isLoadScreen"] === true)
 				{
 					jsPsych.finishTrial(); // Move on!
+				}
+				// If the error was something else, die.
+				else
+				{
+					failOurFault();
 				}
 			});
 		},
@@ -444,6 +455,7 @@ var linkSession = function()
 			psiturkUid: psiturkUid ? psiturkUid : null,
 			psiturkWorkerId: psiturkWorkerId ? psiturkWorkerId : null,
 			labUserId: labUserId ? labUserId : null,
+			wave: wave,
 		},
 		function(data)
 		{
@@ -459,7 +471,7 @@ var linkSession = function()
 			else
 			{
 				console.log("Error: no session ID returned from server after request to start session.");
-				// display error and end trial
+				failOurFault();
 			}
 		},
 		"json"
@@ -467,7 +479,7 @@ var linkSession = function()
 	{
 		console.log("Error: request to start session failed; the following response was returned:");
 		console.log(data.responseJSON);
-		//display error and end trial
+		failOurFault();
 	});
 };
 
@@ -562,7 +574,8 @@ var finishTimeline = function()
 		emotions = jsPsych.randomization.shuffle(["Anger", "Pride", "Elation", "Joy", "Satisfaction", "Relief", "Hope", "Interest", "Surprise", "Sadness", "Fear", "Shame", "Guilt", "Envy", "Disgust", "Contempt",]);
 		
 		// Build the sequence (sets the `sequence` global)
-		buildSequence();
+		var seqSuccess = buildSequence();
+		if (!seqSuccess) failOurFault();
 	}
 	
 	var timelineToAdd = [];
@@ -623,6 +636,7 @@ var finishTimeline = function()
 				else
 				{
 					console.log("Error: couldn't set session details: no sessionId returned by server.");
+					failOurFault();
 				}
 			},
 			"json"
@@ -630,6 +644,7 @@ var finishTimeline = function()
 		{
 			console.log("Error: couldn't set session details:");
 			console.log(data.responseJSON);
+			failOurFault();
 		});
 	}
 	else
@@ -669,6 +684,14 @@ var stopSession = function()
 	// Don't need to wait for a response to the above AJAX; just need to have the request made
 	Turkframe.messageFinished({sessionId: sessionId});
 };
+
+var failOurFault = function()
+{
+	var errMsg = "We're sorry, an error occured. This task will be ended.";
+	if (Turkframe.inTurkframeMode()) errMsg += " You WILL be paid in full for this HIT.";
+	alert(errMsg);
+	Turkframe.messageFinished({sessionId: sessionId});
+}
 
 // Run the experiment
 jsPsych.init({
