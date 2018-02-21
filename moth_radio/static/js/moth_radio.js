@@ -495,6 +495,8 @@ var videoBlockForStimAndTimes = function(stimId, startTime, stopTime)
 		stop: stopTime,
 		indicateLoading: true,
 		promptEnableAutoplay: true,
+		width: 850,
+		height: 650,
 		on_start: function() { $(document).on("visibilitychange", visibilityListener); },
 		on_finish: function() { $(document).off("visibilitychange", visibilityListener); },
 	};
