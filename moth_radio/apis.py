@@ -85,6 +85,8 @@ def fetchStimuli(count = None, modality = None, forceImport = False):
 	query = models.Stimulus.query.order_by(models.Stimulus.id)
 	if modality:
 		query = query.filter_by(modality = modality)
+	if app.config.get("tags"):
+		query = query.filter_by(tags = app.config["tags"])
 	if count:
 		query = query.limit(count)
 	results = query.all()
