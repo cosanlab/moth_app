@@ -42,7 +42,7 @@ var createTimesForDurationAndSampleInterval = function(duration, sampleInterval,
 		minDuration = roundToTenths(sampleInterval - jitterSeconds / 2),
 		maxDuration = roundToTenths(sampleInterval + jitterSeconds / 2),
 		possibleDurations = _.range(minDuration, maxDuration, 0.1).map(function(duration){return roundToTenths(duration)}),
-		possibleOffsets = _.range(minOffset, minOffset + (sampleInterval / 2), 0.1).map(function(duration){return roundToTenths(duration)}),
+		possibleOffsets = _.range(minOffset, minOffset + sampleInterval, 0.1).map(function(duration){return roundToTenths(duration)}),
 		offset = _.sample(possibleOffsets);
 
 	var starts = [0, offset];
@@ -638,8 +638,9 @@ var finishTimeline = function()
 	var endMsg =
 	{
 		type: "html-keyboard-response",
-		stimulus: "Thank you for participating!",
+		stimulus: "Thank you for participating! Please wait a moment and press 'space' if this HIT is not automatically submitted.",
 		on_start: stopSession,
+		on_finish: function() { Turkframe.messageFinished({sessionId: sessionId}) }, // Extra fallback just in case.
 	 };
 	timelineToAdd.push(endMsg);
 	
@@ -737,3 +738,38 @@ if (Turkframe.inTurkframeMode())
 {
 	continuePreTrialTimeline();
 }
+
+
+var test = function(subjects, duration, interval)
+{
+	var stops = [];
+	for (var i = 0; i < subjects; i ++)
+	{
+		var times = createTimesForDurationAndSampleInterval(duration, interval),
+			roundedTimes = [];
+		for (var j = 0; j < times.length; j ++)
+		{
+			roundedTimes.push(Math.round(times[j]));
+		}
+		stops = stops.concat(roundedTimes);
+	}
+	var sums = {};
+	for (var i = 0; i < stops.length; i ++)
+	{
+		var thisStop = stops[i];
+		if (sums[thisStop]) sums[thisStop] = sums[thisStop] + 1;
+		else sums[thisStop] = 1;
+	}
+	var strings = [];
+	for (var i = 0; i < duration; i ++)
+	{
+		if (!sums[i]) sums[i] = 0;
+		strings.push(i.toString() + ": " + "#".repeat(sums[i]));
+	}
+	strings.shift();
+	console.log(strings.join("\n"));
+}
+
+
+
+
