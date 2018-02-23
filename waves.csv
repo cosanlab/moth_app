@@ -1,1 +1,3 @@
 wave,num_stim,sample_interval,sample_time_jitter,stim flags
+1.0,1,60,0.33,
+2.0,1,240,0.33,fnl
