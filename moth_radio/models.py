@@ -13,6 +13,7 @@ class Stimulus(db.Model):
 	duration = db.Column(db.Integer)
 	modality = db.Column(db.String(32))
 	tags = db.Column(db.String(64))
+	tagOrder = db.Column(db.Integer)
 
 class Session(db.Model):
 	__tablename__ = 'sessions'

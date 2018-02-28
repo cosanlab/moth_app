@@ -217,7 +217,7 @@ def retrieveOpenSession(labUserId = None, psiturkWorkerId = None):
 	if psiturkWorkerId:
 		query = query.filter_by(psiturkWorkerId = psiturkWorkerId)
 	# Sessions must have been started within a certain recency to be re-openable
-	timeout = 60*60 # one hour
+	timeout = 60 * app.config["hit_duration_mins"]
 	expDate = math.floor(time.time()) - timeout
 	# Get the most recent open session for this user, if one exists
 	query = query.filter(\
@@ -299,7 +299,8 @@ def linkSession():
 			"filename": thisStim.filename,
 			"duration": thisStim.duration,
 			"modality": thisStim.modality,
-			"tags": thisStim.tags
+			"tags": thisStim.tags,
+			"tagOrder": thisStim.tagOrder
 		}
 		stimPrims.append(primObj)
 	respDict = {

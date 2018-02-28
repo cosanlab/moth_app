@@ -161,10 +161,31 @@ var buildSequence = function()
 {
 	if (stimuli.length < numStim) return false;
 	
-	var newSeq = [];
+	var newSeq = [],
+		selectedStim = stimuli;
 	
-	// Randomly select the requested number of stimuli
-	var selectedStim = jsPsych.randomization.sampleWithoutReplacement(stimuli, numStim);
+	// Sort stimuli by tag if requested
+	if (useTagOrder)
+	{
+		selectedStim.sort(function(a, b)
+		{
+			if (a.tagOrder < b.tagOrder) return -1;
+			if (a.tagOrder > b.tagOrder) return 1;
+			return 0;
+		});
+	}
+	// Or, otherwise, randomize the order of stimuli
+	else
+	{
+		selectedStim = jsPsych.randomization.shuffle(selectedStim);
+	}
+	
+	// If a positive number of stimuli is requested, select that number (they're already sorted into random order).
+	// Otherwise, if -1 is passed, use all valid stimuli, however many there are.
+	if (numStim >= 0)
+	{
+		selectedStim = selectedStim.slice(0, numStim);
+	}
 	
 	// Loop through the stimuli and generate stop times
 	for (var i = 0; i < selectedStim.length; i ++)
@@ -638,7 +659,7 @@ var finishTimeline = function()
 	var endMsg =
 	{
 		type: "html-keyboard-response",
-		stimulus: "Thank you for participating! Please wait a moment and press 'space' if this HIT is not automatically submitted.",
+		stimulus: "Thank you for participating! Please wait a moment and press 'space' if this HIT is not automatically submitted. If you encounter any errors during submission, do not worry; contact <a href='mailto:cosanlab@gmail.com'>cosanlab@gmail.com</a> and you will be fully compensated for completing this HIT.",
 		on_start: stopSession,
 		on_finish: function() { Turkframe.messageFinished({sessionId: sessionId}) }, // Extra fallback just in case.
 	 };
