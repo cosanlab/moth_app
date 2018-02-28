@@ -217,7 +217,7 @@ var timeline = [];
 var welcomeBlock =
 {
 	type: "html-keyboard-response",
-	stimulus: "<p>Welcome to the experiment. Press any key to begin.</p>",
+	stimulus: "<p>Welcome to the study.</p><p>You may reload or close/reopen this window whenever you like, and the task will resume approximately where you left off. Feel free to take breaks, provided you finish the task within the time window provided (see the HIT ad for details).</p><p>If you encounter any issues while completing this HIT, please contact the requesters (<a href='mailto:cosanlab@gmail.com'>cosanlab@gmail.com</a>), and rest assured that you will be fully compensated for your time.<p>Thank you in advance for your participation!</p><p>Press any key to begin.</p>",
 };
 timeline.push(welcomeBlock);
 
