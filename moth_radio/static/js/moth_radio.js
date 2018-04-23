@@ -511,7 +511,7 @@ var videoBlockForStimAndTimes = function(stimId, startTime, stopTime)
 	var block =
 	{
 		type: "video",
-		sources: [stimBase + stimWithId(stimId).filename],
+		sources: [(stimRemote.length > 0 ? stimRemote : stimBase) + stimWithId(stimId).filename],
 		start: startTime,
 		stop: stopTime,
 		indicateLoading: true,
