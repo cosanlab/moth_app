@@ -217,7 +217,7 @@ var timeline = [];
 var welcomeBlock =
 {
 	type: "html-keyboard-response",
-	stimulus: "<p>Welcome to the study.</p><p>You may reload or close/reopen this window whenever you like, and the task will resume approximately where you left off. Feel free to take breaks, provided you finish the task within the time window provided (see the HIT ad for details).</p><p>If you encounter any issues while completing this HIT, please contact the requesters (<a href='mailto:cosanlab@gmail.com'>cosanlab@gmail.com</a>), and rest assured that you will be fully compensated for your time.<p>Thank you in advance for your participation!</p><p>Press any key to begin.</p>",
+	stimulus: "<p>Welcome to the study.</p><p>You may reload this window at any point, or bookmark and return to it, and the task will resume approximately where you left off. Feel free to take breaks, provided you finish the task within the time window provided (see the HIT ad for details).</p><p>If you encounter any issues while completing this HIT, please try reloading the page. If the error persists, contact the requesters (<a href='mailto:cosanlab@gmail.com'>cosanlab@gmail.com</a>), and <strong>rest assured that you will be fully compensated for your time</strong>.<p>Thank you in advance for your participation!</p><p>Press any key to begin.</p>",
 };
 timeline.push(welcomeBlock);
 
@@ -593,7 +593,7 @@ var finishTimeline = function()
 	if (!resumedSession)
 	{
 		// Each user will have emotions presented in a random order, but the order will remain consistent for that user
-		emotions = jsPsych.randomization.shuffle(["Anger", "Pride", "Elation", "Joy", "Satisfaction", "Relief", "Hope", "Interest", "Surprise", "Sadness", "Fear", "Shame", "Guilt", "Envy", "Disgust", "Contempt",]);
+		emotions = jsPsych.randomization.shuffle(["Anger", "Pride", "Elation", "Joy", "Satisfaction", "Relief", "Hope", "Boredom", "Surprise", "Sadness", "Fear", "Shame", "Guilt", "Envy", "Disgust", "Contempt", "Anxiety", "Amusement",]);
 		
 		// Build the sequence (sets the `sequence` global)
 		var seqSuccess = buildSequence();
@@ -635,8 +635,10 @@ var finishTimeline = function()
 		preamble: "Thank you for finishing this video. Before you go, please answer the following questions.<br /><em>Note: if you have completed this task before, you are not required to answer these questions again.</em>",
 		// Have to specify all properties in `questions` because of a bug in the current version of
 		// the survey-text plugin (as of Jan 17, 2018).
-		questions: [{prompt: "Your Gender:", rows: 1, columns: 20, value: "",},
-					{prompt: "Your Age:", rows: 1, columns: 20, value: "",},
+		questions: [{prompt: "<strong>Your Gender:</strong>", rows: 1, columns: 20, value: "",},
+					{prompt: "<strong>Your Age:</strong>", rows: 1, columns: 20, value: "",},
+					{prompt: "<p><strong>Your Ethnicity</strong><br />(Please copy and paste one item into the following text box)<ul style='display:inline-block;'><li>Hispanic</li><li>Not Hispanic</li><li>Other</li></ul></p>", rows: 1, columns: 20, value: "",},
+					{prompt: "<p><strong>Your Race:</strong><br />(Please copy and paste one item into the following text box)<ul style='display:inline-block;'><li>American Indian / Alaksan Native</li><li>Asian / Asian American</li><li>Black / African American</li><li>Native Hawaiian / Other Pacific Islander</li><li>White</li><li>Multi</li><li>Other</li></ul></p>", rows: 1, columns: 20, value: "",},
 					{prompt: "Feedback on this Task:", rows: 6, columns: 40, value: "",}],
 		on_finish: function(data)
 		{
