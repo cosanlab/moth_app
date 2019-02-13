@@ -530,11 +530,7 @@ var linkSession = function()
 				stimuli = data["validStim"]; // Always sent
 				emotions = data["emotions"]; // Empty when not resuming open session
 				sequence = data["sequence"]; // Empty when not resuming open session
-				
-				// TODO move this somewhere better
-				// Limit each run to fn videos
-				var runVideoCount = 4; // 4 videos is a run
-				sequence = sequence.slice(0, runVideoCount);
+
 				
 				finishTimeline();
 			}
@@ -652,6 +648,12 @@ var finishTimeline = function()
 			jsPsych.endExperiment("Sorry, you have already watched all available videos. Thank you for your participation.");
 			return;
 		}
+
+		// TODO make this better
+		// Limit each run to fn videos
+		var runVideoCount = 4; // 4 videos is a run
+		longSequence = sequence
+		sequence = sequence.slice(0, runVideoCount);
 	}
 	
 	var timelineToAdd = [];
@@ -706,7 +708,7 @@ var finishTimeline = function()
 			exitSurvey = JSON.stringify(surveyData);
 		},
 	};
-	timelineToAdd.push(surveyBlock);
+	// timelineToAdd.push(surveyBlock);
 	
 	var endMsg =
 	{
@@ -715,7 +717,7 @@ var finishTimeline = function()
 		on_start: stopSession,
 		on_finish: function() { Turkframe.messageFinished({sessionId: sessionId}) }, // Extra fallback just in case.
 	 };
-	timelineToAdd.push(endMsg);
+	// timelineToAdd.push(endMsg);
 	
 	jsPsych.addNodeToEndOfTimeline({timeline: timelineToAdd}, new Function); // Apparent bug as of Feb 3, 2018 requires empty callback
 	
@@ -727,7 +729,7 @@ var finishTimeline = function()
 			{
 				sessionId: sessionId,
 				emotions: JSON.stringify(emotions),
-				sequence: JSON.stringify(sequence),
+				sequence: JSON.stringify(longSequence),
 			},
 			function(data)
 			{
