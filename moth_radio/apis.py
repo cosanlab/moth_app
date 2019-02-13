@@ -13,6 +13,8 @@ on your machine at home unless you're in debug mode. Note that this
 from moth_radio import app, db, models
 from flask import request, jsonify
 import json, math, time
+if app.config["scanning"]: import serial
+if app.config["use_biopac"]: from psychopy.hardware.labjacks import U3 
 
 ###### Infrastructure / Helpers ######
 
@@ -412,3 +414,33 @@ def latestRatingForSession(session = None):
 	rating = models.Rating.query.filter_by(sessionId = session.id).order_by(models.Rating.timestamp.desc()).first()
 	if not rating: return False
 	return rating
+
+@app.route("/scanner-ready", methods = ["GET"])
+def scannerReady():
+	if not checkValidOrigin(request): return badOriginResponse
+	
+	validTrigger = 'k'
+	trigger=''
+	if  app.config['scanning']:
+		serial_settings = app.config['scanner_settings']
+		ser = serial.Serial(serial_settings['mount'], serial_settings['baud'], timeout = serial_settings['timeout'])
+		ser.flushInput()
+		
+	while trigger != validTrigger:
+	   if app.config['scanning']:
+		   trigger= ser.read()
+	   else:
+		   time.sleep(5)
+		   trigger = validTrigger	
+
+	if app.config['use_biopac']:
+	   lj = U3()
+	   lj.setFIOState(0,1) #Make sure we start with the trigger off
+
+	respDict = {"scannerReady": True}
+	return jsonify(respDict)
+
+
+
+
+

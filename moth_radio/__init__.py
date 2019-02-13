@@ -17,9 +17,16 @@ app.config['tags'] = "moth"
 app.config['hit_duration_mins'] = 150
 app.config['stim_base'] = "static/stim/"
 # app.config['stim_remote'] = "https://prefix.somecdn.com/" # Remote stim path
-app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://moth_radio:yourPassword@localhost/moth_radio" # DON'T COMMIT PASSWORDS!
+app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://moth_radio:Cosan233@localhost/moth_radio" # DON'T COMMIT PASSWORDS!
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = 0
+app.config['scanning'] = False
+app.config['scanner_settings'] = {
+	'mount': '/dev/tty.KeySerial1',
+	'baud': 115200,
+	'timeout':0
+}
+app.config['use_biopac'] = False
 db = SQLAlchemy(app)
 
 from moth_radio import models, views, apis
@@ -28,6 +35,13 @@ db.create_all()
 
 # Force an import of stimuli on startup
 apis.fetchStimuli(forceImport = True)
+
+if app.config['use_biopac']:
+	from psychopy.hardware.labjacks import U3
+	lj = U3()
+	cal_data = lj.getCalibrationData()
+	if lj.getFIOState(0) == 1:
+		lj.setFIOState(0,0) #Make sure we start with the trigger off
 
 #application instance- web server passes all requests it receives from clients to this object for handling iusing WSGI
 #app instance needs to know what to run for each requested URL so route
