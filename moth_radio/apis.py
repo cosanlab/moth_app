@@ -440,7 +440,15 @@ def scannerReady():
 	respDict = {"scannerReady": True}
 	return jsonify(respDict)
 
-
-
-
-
+@app.route("/cleanup", methods = ["GET"])
+def cleanup():
+	if app.config['use_biopac']:
+	   lj = U3()
+	   lj.close()
+	if  app.config['scanning']:
+		serial_settings = app.config['scanner_settings']
+		ser = serial.Serial(serial_settings['mount'], serial_settings['baud'], timeout = serial_settings['timeout'])
+		ser.flushInput()
+		ser.close()
+	return "Cleaned up."
+	
