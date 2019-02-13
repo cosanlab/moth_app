@@ -425,12 +425,56 @@ var continuePreTrialTimeline = function()
 	{
 		type: "html-keyboard-response",
 		stimulus: "<p>You are going to watch a video clip. The clip will pause  " +
-			"and random times and you will be presented with a group of ratings to make.</p>" +
+			"at random times and you will be presented with a group of ratings to make.</p>" +
 			"<p>Please rate your emotions at the time of the rating," +
-			"and press the spacebar when you are finished to continue watching the video clip.</p>" +
-			"<p>Press any key to begin.</p>",
+			"and press the Submit button when you are finished to continue watching the video clip.</p>",
 	};
 	timelineToAdd.push(instructionsBlock);
+	
+	var waitScannerBlock =
+	{
+		type: "html-keyboard-response",
+		stimulus: "<p>Waiting for scanner...</p>",
+		choices: [jsPsych.NO_KEYS,],
+		isWaitingScreen: true,
+		on_start: function()
+		{
+			$.get("scanner-ready",
+				function(data)
+				{
+					if (data["scannerReady"] = true)
+					{
+						// Clear the loading screen now and move on
+						if (jsPsych.currentTrial()["isWaitingScreen"] === true)
+						{
+							jsPsych.finishTrial();
+						}
+					}
+					else
+					{
+						console.log("Error: scanner not ready.")
+						console.log(data);
+						failOurFault();
+					}
+				}
+			).fail(function(data)
+			{
+				console.log("Error: request to check scanner readiness failed; the following response was returned:");
+				console.log(data.responseJSON);
+				failOurFault();
+			})
+		}
+	};
+	timelineToAdd.push(waitScannerBlock);
+	
+	var fixationPointBlock =
+	{
+		type: "html-keyboard-response",
+		stimulus: "<h1>+</h1>",
+		choices: [jsPsych.NO_KEYS,],
+		trial_duration: 10*1000,
+	};
+	timelineToAdd.push(fixationPointBlock);
 	
 	// Shown while waiting for the AJAX request to finish. User can't do anything; the callbacks clear this screen when appropriate
 	var loadingBlock =
@@ -486,6 +530,12 @@ var linkSession = function()
 				stimuli = data["validStim"]; // Always sent
 				emotions = data["emotions"]; // Empty when not resuming open session
 				sequence = data["sequence"]; // Empty when not resuming open session
+				
+				// TODO move this somewhere better
+				// Limit each run to fn videos
+				var runVideoCount = 4; // 4 videos is a run
+				sequence = sequence.slice(0, runVideoCount);
+				
 				finishTimeline();
 			}
 			else
