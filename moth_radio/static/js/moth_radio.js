@@ -712,7 +712,7 @@ var finishTimeline = function()
 	var endMsg =
 	{
 		type: "html-keyboard-response",
-		stimulus: "This is the end of the run.",
+		stimulus: "<p>This is the end of the run.</p><ul><li><a href='cleanup/'>cleanup</a></li><li><a href = '/stop-session?sessionId=" + sessionId + "'>stop session</a></li></ul>",
 		on_start: stopSession,
 		// on_finish: function() { Turkframe.messageFinished({sessionId: sessionId}) }, // Extra fallback just in case.
 	 };
