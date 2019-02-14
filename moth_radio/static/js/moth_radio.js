@@ -347,8 +347,7 @@ if (!Turkframe.inTurkframeMode())
 
 var fixationPointBlockForSeconds = function(seconds)
 {
-	return
-	{
+	return {
 		type: "html-keyboard-response",
 		stimulus: "<h1>+</h1>",
 		choices: [jsPsych.NO_KEYS,],
