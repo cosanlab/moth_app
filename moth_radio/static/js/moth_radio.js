@@ -712,11 +712,11 @@ var finishTimeline = function()
 	var endMsg =
 	{
 		type: "html-keyboard-response",
-		stimulus: "Thank you for participating! Please wait a moment and press 'space' if this HIT is not automatically submitted. If you encounter any errors during submission, do not worry; contact <a href='mailto:cosanlab@gmail.com'>cosanlab@gmail.com</a> and you will be fully compensated for completing this HIT.",
+		stimulus: "This is the end of the run.",
 		on_start: stopSession,
-		on_finish: function() { Turkframe.messageFinished({sessionId: sessionId}) }, // Extra fallback just in case.
+		// on_finish: function() { Turkframe.messageFinished({sessionId: sessionId}) }, // Extra fallback just in case.
 	 };
-	// timelineToAdd.push(endMsg);
+	timelineToAdd.push(endMsg);
 	
 	jsPsych.addNodeToEndOfTimeline({timeline: timelineToAdd}, new Function); // Apparent bug as of Feb 3, 2018 requires empty callback
 	
