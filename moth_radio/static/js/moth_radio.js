@@ -649,9 +649,10 @@ var finishTimeline = function()
 			return;
 		}
 
-		// TODO move this somewhere better
+		// TODO make this better
 		// Limit each run to fn videos
 		var runVideoCount = 4; // 4 videos is a run
+		longSequence = sequence
 		sequence = sequence.slice(0, runVideoCount);
 	}
 	
@@ -728,7 +729,7 @@ var finishTimeline = function()
 			{
 				sessionId: sessionId,
 				emotions: JSON.stringify(emotions),
-				sequence: JSON.stringify(sequence),
+				sequence: JSON.stringify(longSequence),
 			},
 			function(data)
 			{
