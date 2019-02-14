@@ -345,6 +345,17 @@ if (!Turkframe.inTurkframeMode())
 	timeline.push(loginLoop);
 }
 
+var fixationPointBlockForSeconds = function(seconds)
+{
+	return
+	{
+		type: "html-keyboard-response",
+		stimulus: "<h1>+</h1>",
+		choices: [jsPsych.NO_KEYS,],
+		trial_duration: seconds*1000,
+	}
+};
+
 var continuePreTrialTimeline = function()
 {
 	var timelineToAdd = [];
@@ -467,14 +478,7 @@ var continuePreTrialTimeline = function()
 	};
 	timelineToAdd.push(waitScannerBlock);
 	
-	var fixationPointBlock =
-	{
-		type: "html-keyboard-response",
-		stimulus: "<h1>+</h1>",
-		choices: [jsPsych.NO_KEYS,],
-		trial_duration: 10*1000,
-	};
-	timelineToAdd.push(fixationPointBlock);
+	timelineToAdd.push(fixationPointBlockForSeconds(10));
 	
 	// Shown while waiting for the AJAX request to finish. User can't do anything; the callbacks clear this screen when appropriate
 	var loadingBlock =
@@ -613,11 +617,7 @@ var ratingBlockForStimAndTimes = function(stimId, startTime, stopTime)
 };
 
 // Canned between-videos message
-var inBetweenBlock =
-{
-	type: "html-keyboard-response",
-	stimulus: "<p> Next video will start soon.</p><p>Click the spacebar to begin.</p>",
-};
+var inBetweenBlock = fixationPointBlockForSeconds(5);
 
 // Finish constructing the timeline by adding the actual videos and ratings
 // Called by linkSession()
