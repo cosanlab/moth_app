@@ -210,6 +210,7 @@ def startNewSession(labUserId = None, psiturkUid = None, psiturkWorkerId = None,
 # Find the most recent open session for a given user.
 # Requires either a LabUser ID or PsiTurk worker ID.
 # Returns the relevant Session object, or False if none is found.
+# import pdb
 def retrieveOpenSession(labUserId = None, psiturkWorkerId = None):
 	# We need one form of ID or the other
 	if not (labUserId or psiturkWorkerId): return False
@@ -218,9 +219,11 @@ def retrieveOpenSession(labUserId = None, psiturkWorkerId = None):
 		query = query.filter_by(labUserId = labUserId)
 	if psiturkWorkerId:
 		query = query.filter_by(psiturkWorkerId = psiturkWorkerId)
+	# pdb.set_trace()
 	# Sessions must have been started within a certain recency to be re-openable
 	timeout = 60 * app.config["hit_duration_mins"]
 	expDate = math.floor(time.time()) - timeout
+	# pdb.set_trace()
 	# Get the most recent open session for this user, if one exists
 	query = query.filter(\
 							models.Session.stopTime == None,\
@@ -252,15 +255,22 @@ def remainingSequenceForSession(session = None):
 			if not hitLastStim:
 				# If the last stim to be rated hasn't been hit yet and this stim still isn't it,
 				# keep going and do nothing with this one; it's already done.
-				if thisStim != lastRating.stimulusId: continue
+				if thisStim != lastRating.stimulusId:
+					print "continuing past "
+					print thisStim
+					continue
 				# If this stim is the last stim to be rated, note that we've reached it
 				# and figure out which stops have yet to be reached.
 				hitLastStim = True
+				query = models.Stimulus.query
+				query = query.filter_by(id = int(thisStim))
+				duration = query.first().duration
 				starts = stimSeq.get("starts", [])
+				starts.append(duration)
 				# The first start left is the moment the last rating was taken
 				firstStartLeftIdx = starts.index(float(lastRating.pollSec))
 				startsLeft = starts[firstStartLeftIdx:]
-				if len(startsLeft) < 1: continue
+				if len(startsLeft) < 2: continue
 				# If at least one start is left for this stim, add it to the remaining sequence
 				remainingSeq.append({"stimulus": thisStim, "starts": startsLeft})
 			else:
@@ -287,6 +297,7 @@ def linkSession():
 	if not (labUserId or (psiturkUid and psiturkWorkerId)): return badRequestResponse
 	resuming = True
 	session = retrieveOpenSession(labUserId = labUserId, psiturkWorkerId = psiturkWorkerId)
+	print session
 	# Start a new session if no open one was found
 	if not session:
 		resuming = False
@@ -358,15 +369,17 @@ def stopSession(sessionId = None):
 # Requires a session ID as `sessionId`.
 # Optinally accepts an `exitSurvey` JSON string. 
 # Responds with the session's id.
-@app.route("/stop-session", methods = ["POST"])
+import pdb
+@app.route("/stop-session", methods = ["GET"])
 def stopSesh():
-	if not checkValidOrigin(request): return badOriginResponse
-	sessionId = request.form.get("sessionId")
-	exitSurvey = request.form.get("exitSurvey")
+	# if not checkValidOrigin(request): return badOriginResponse
+	# pdb.set_trace()
+	sessionId = request.args.get("sessionId")
+	# exitSurvey = request.form.get("exitSurvey")
 	if not sessionId: return badRequestResponse
 	session = stopSession(sessionId)
 	if not session: return failureResponse
-	session.exitSurvey = exitSurvey
+	# session.exitSurvey = exitSurvey
 	respDict = {"sessionId": session.id}
 	response = jsonify(respDict)
 	return response

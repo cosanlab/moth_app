@@ -647,13 +647,13 @@ var finishTimeline = function()
 			jsPsych.endExperiment("Sorry, you have already watched all available videos. Thank you for your participation.");
 			return;
 		}
-
-		// TODO make this better
-		// Limit each run to fn videos
-		var runVideoCount = 4; // 4 videos is a run
-		longSequence = sequence
-		sequence = sequence.slice(0, runVideoCount);
 	}
+
+	// TODO make this better
+	// Limit each run to fn videos
+	var runVideoCount = 4; // 4 videos is a run
+	longSequence = sequence
+	sequence = sequence.slice(0, runVideoCount);
 	
 	var timelineToAdd = [];
 	

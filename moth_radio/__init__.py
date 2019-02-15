@@ -9,15 +9,15 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__)
 app.config['wave'] = "1.0"
 app.config['num_stops'] = 1 # usually ignored
-app.config['num_stim'] = 1
+app.config['num_stim'] = -1
 app.config['use_tag_order'] = 1
 app.config['sample_interval'] = 60
-app.config['sample_time_jitter'] = 0.33
+app.config['sample_time_jitter'] = 0.1
 app.config['tags'] = "scan0"
 app.config['hit_duration_mins'] = 150
 app.config['stim_base'] = "static/stim/"
 # app.config['stim_remote'] = "https://prefix.somecdn.com/" # Remote stim path
-app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://moth_radio:yourPassword@localhost/moth_radio" # DON'T COMMIT PASSWORDS!
+app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://moth_radio:yourpassword@localhost/moth_radio" # DON'T COMMIT PASSWORDS!
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = 0
 app.config['scanning'] = False
@@ -26,7 +26,7 @@ app.config['scanner_settings'] = {
 	'baud': 115200,
 	'timeout':0
 }
-app.config['use_biopac'] = False
+app.config['use_biopac'] = True
 db = SQLAlchemy(app)
 
 from moth_radio import models, views, apis
@@ -42,6 +42,8 @@ if app.config['use_biopac']:
 	cal_data = lj.getCalibrationData()
 	if lj.getFIOState(0) == 1:
 		lj.setFIOState(0,0) #Make sure we start with the trigger off
+
+	lj.close()
 
 #application instance- web server passes all requests it receives from clients to this object for handling iusing WSGI
 #app instance needs to know what to run for each requested URL so route
