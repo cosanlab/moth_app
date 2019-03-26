@@ -1,6 +1,7 @@
 [submodule "moth_radio/static/lib/rapid-rate"]
 	path = moth_radio/static/lib/rapid-rate
 	url = https://github.com/ngreenstein/rapid-rate.git
+	branch = scanner
 [submodule "moth_radio/static/lib/turkframe"]
 	path = moth_radio/static/lib/turkframe
 	url = https://github.com/ngreenstein/turkframe.git
