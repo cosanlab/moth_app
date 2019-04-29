@@ -25,8 +25,8 @@ class Session(db.Model):
 	startTime = db.Column(db.Integer)
 	stopTime = db.Column(db.Integer)
 	emotions = db.Column(db.String(1024))
-	sequence = db.Column(db.String(4096))
-	exitSurvey = db.Column(db.String(16384))
+	sequence = db.Column(db.String(1024))
+	exitSurvey = db.Column(db.String(1024))
 
 class Rating(db.Model):
 	__tablename__ = 'ratings'
@@ -38,4 +38,4 @@ class Rating(db.Model):
 	sliceStartSec = db.Column(db.Float)
 	reactionTime = db.Column(db.Float)
 	intensities = db.Column(db.String(1024))
-	ratingHistory = db.Column(db.String(16384))
+	ratingHistory = db.Column(db.String(1024))
