@@ -432,7 +432,7 @@ def latestRatingForSession(session = None):
 def scannerReady():
 	if not checkValidOrigin(request): return badOriginResponse
 	
-	validTrigger = 'k'
+	validTrigger = '5'
 	trigger=''
 	if  app.config['scanning']:
 		serial_settings = app.config['scanner_settings']
@@ -440,12 +440,14 @@ def scannerReady():
 		ser.flushInput()
 		
 	while trigger != validTrigger:
+	   print(trigger)
 	   if app.config['scanning']:
 		   trigger= ser.read()
 	   else:
 		   time.sleep(5)
 		   trigger = validTrigger	
 
+	print(trigger)
 	if app.config['use_biopac']:
 	   lj = U3()
 	   lj.setFIOState(0,1) #Make sure we start with the trigger off

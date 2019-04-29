@@ -217,7 +217,7 @@ var timeline = [];
 var welcomeBlock =
 {
 	type: "html-keyboard-response",
-	stimulus: "<p>Welcome to the study.</p><p>You may reload this window at any point, or bookmark and return to it, and the task will resume approximately where you left off. Feel free to take breaks, provided you finish the task within the time window provided (see the HIT ad for details).</p><p>If you encounter any issues while completing this HIT, please try reloading the page. If the error persists, contact the requesters (<a href='mailto:cosanlab@gmail.com'>cosanlab@gmail.com</a>), and <strong>rest assured that you will be fully compensated for your time</strong>.<p>Thank you in advance for your participation!</p><p>Press any key to begin.</p>",
+	stimulus: "<p>Setting up the study...</p><p><p>Press any key to begin.</p>",
 };
 timeline.push(welcomeBlock);
 
@@ -231,7 +231,7 @@ if (!Turkframe.inTurkframeMode())
 	var accountPrompt =
 	{
 		type: "html-button-response",
-		stimulus: "<p>Would you like to log in to an existing cosanlabradio account or create a new one?</p>",
+		stimulus: "<p>Is this an existing cosanlabradio account or create a new one?</p>",
 		choices: ["Log In", "Create Account"],
 		on_finish: function(data)
 		{
@@ -581,7 +581,7 @@ var ratingBlockForStimAndTimes = function(stimId, startTime, stopTime)
 		items: emotions,
 		logCommits: true,
 		topMsg: "Please rate each of the following emotions:",
-		bottomMsg: "Press 'space' when finished.",
+		bottomMsg: "Press 'submit' when finished.",
 		on_finish: function(ratingData)
 		{
 			var payload =
@@ -712,7 +712,7 @@ var finishTimeline = function()
 	var endMsg =
 	{
 		type: "html-keyboard-response",
-		stimulus: "<p>This is the end of the run.</p><ul><li><a href='cleanup/'>cleanup</a></li><li><a href = '/stop-session?sessionId=" + sessionId + "'>stop session</a></li></ul>",
+		stimulus: "<p>This is the end of the run.</p>Please stay still and wait for the experimenter to contact you</p><ul><li><a href='cleanup/'>cleanup</a></li><li><a href = '/stop-session?sessionId=" + sessionId + "'>stop session</a></li></ul>",
 		on_start: stopSession,
 		// on_finish: function() { Turkframe.messageFinished({sessionId: sessionId}) }, // Extra fallback just in case.
 	 };
