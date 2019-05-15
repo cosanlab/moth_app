@@ -37,5 +37,5 @@ class Rating(db.Model):
 	pollSec = db.Column(db.Float)
 	sliceStartSec = db.Column(db.Float)
 	reactionTime = db.Column(db.Float)
-	intensities = db.Column(db.String(1024))
-	ratingHistory = db.Column(db.String(1024))
+	intensities = db.Column(db.String(2048))
+	ratingHistory = db.Column(db.String(2048))

@@ -594,6 +594,10 @@ var ratingBlockForStimAndTimes = function(stimId, startTime, stopTime)
 				intensities: JSON.stringify(ratingData["ratings"]),
 				ratingHistory: JSON.stringify(ratingData["commitLog"]),
 			};
+			if (!payload["reactionTime"])
+			{
+				payload["reactionTime"] = -1 // If we don't have a reaction time, send -1 instead of nothing so the server accepts it
+			}
 			$.post(
 				"save-rating",
 				payload,
@@ -614,6 +618,74 @@ var ratingBlockForStimAndTimes = function(stimId, startTime, stopTime)
 	};
 	return block;
 };
+
+// Build a scanner teardown/rebuild block
+var buildTearBuildBlocks = function()
+{
+	var thisTimeline = [];
+
+	var crossBlock = fixationPointBlockForSeconds(10);
+	thisTimeline.push(crossBlock);
+
+	var waitBlock =
+	{
+		type: "html-keyboard-response",
+		choice: jsPsych.ANY_KEY,
+		stimulus: "Preparing next video..."
+	};
+	thisTimeline.push(waitBlock);
+
+	var loadBlock =
+	{
+		type: "html-keyboard-response",
+		choice: jsPsych.NO_KEYS,
+		isWaitingScreen: true,
+		stimulus: "Please wait, scanner loading...",
+		on_start: function()
+		{
+			$.get(
+			"cleanup",
+			function()
+			{
+				console.log("Call to `cleanup` succeeded.")
+				$.get("scanner-ready",
+				function(data)
+				{
+					if (data["scannerReady"] = true)
+					{
+						// Clear the loading screen now and move on
+						if (jsPsych.currentTrial()["isWaitingScreen"] === true)
+						{
+							jsPsych.finishTrial();
+						}
+					}
+					else
+					{
+						console.log("Error: scanner not ready.")
+						console.log(data);
+						failOurFault();
+					}
+				}
+				).fail(function(data)
+				{
+					console.log("Error: request to check scanner readiness failed; the following response was returned:");
+					console.log(data.responseJSON);
+					failOurFault();
+				});
+			}
+			).fail(function()
+			{
+				console.log("Error: call to `cleanup` failed.");
+				failOurFault();
+			});
+		},
+	};
+	thisTimeline.push(loadBlock)
+
+	thisTimeline.push(crossBlock);
+
+	return thisTimeline;
+}
 
 // Canned between-videos message
 var inBetweenBlock = fixationPointBlockForSeconds(5);
@@ -638,7 +710,7 @@ var finishTimeline = function()
 	if (!resumedSession)
 	{
 		// Each user will have emotions presented in a random order, but the order will remain consistent for that user
-		emotions = jsPsych.randomization.shuffle(["Anger", "Pride", "Elation", "Joy", "Satisfaction", "Relief", "Hope", "Boredom", "Surprise", "Sadness", "Fear", "Shame", "Guilt", "Envy", "Disgust", "Contempt", "Anxiety", "Amusement",]);
+		emotions = jsPsych.randomization.shuffle(["Amusement", "Anger", "Anxiety", "Boredom", "Disgust", "Cringe", "Endearment", "Fear", "Frustration", "Hope", "Joy", "Pride", "Relief", "Sadness", "Surprise",]);
 		
 		// Build the sequence (sets the `sequence` global)
 		var seqSuccess = buildSequence();
@@ -677,7 +749,11 @@ var finishTimeline = function()
 		}
 		
 		// Add an in-between block if there is another video to play
-		if (i < (sequence.length -1 )) timelineToAdd.push(inBetweenBlock);
+		if (i < (sequence.length -1 ))
+		{
+			timelineToAdd = timelineToAdd.concat(buildTearBuildBlocks())
+			timelineToAdd.push(inBetweenBlock);
+		}
 	}
 	
 	var surveyBlock =

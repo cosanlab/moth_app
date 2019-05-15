@@ -444,7 +444,7 @@ def scannerReady():
 	   if app.config['scanning']:
 		   trigger= ser.read()
 	   else:
-		   time.sleep(5)
+		   time.sleep(10)
 		   trigger = validTrigger	
 
 	print(trigger)
