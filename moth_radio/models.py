@@ -39,3 +39,11 @@ class Rating(db.Model):
 	reactionTime = db.Column(db.Float)
 	intensities = db.Column(db.String(2048))
 	ratingHistory = db.Column(db.String(2048))
+
+class Log(db.Model):
+	__tablename__ = 'logs'
+	id = db.Column(db.Integer, primary_key= True, unique=True)
+	sessionId = db.Column(db.Integer, db.ForeignKey('sessions.id'))
+	timestamp = db.Column(db.Integer)
+	eventCode = db.Column(db.Integer)
+	meta = db.Column(db.String(2048))

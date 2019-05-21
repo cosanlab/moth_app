@@ -16,6 +16,8 @@ import json, math, time
 if app.config["scanning"]: import serial
 if app.config["use_biopac"]: from psychopy.hardware.labjacks import U3 
 
+import pdb
+
 ###### Infrastructure / Helpers ######
 
 # Whitelist for origins to accept.
@@ -466,4 +468,26 @@ def cleanup():
 		ser.flushInput()
 		ser.close()
 	return "Cleaned up."
+
+def storeLog(log):
+	# pdb.set_trace()
+	if not (log.sessionId and log.timestamp and log.eventCode):
+		return False
+	db.session.add(log)
+	db.session.commit()
+	return log
 	
+@app.route("/save-log", methods = ["POST"])
+def saveLog():
+	if not checkValidOrigin(request): return badOriginResponse
+	log = models.Log()
+	log.sessionId = request.form.get("sessionId")
+	log.timestamp = math.floor(time.time())
+	log.eventCode = request.form.get("eventCode")
+	log.meta = request.form.get("meta")
+	# pdb.set_trace()
+	logObj = storeLog(log)
+	if not logObj: return badRequestResponse # Was probably missing some property
+	respDict = {"logId": logObj.id}
+	response = jsonify(respDict)
+	return response

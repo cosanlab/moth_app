@@ -352,8 +352,36 @@ var fixationPointBlockForSeconds = function(seconds)
 		stimulus: "<h1>+</h1>",
 		choices: [jsPsych.NO_KEYS,],
 		trial_duration: seconds*1000,
+		on_start: function()
+		{
+			sendLogEntry({"eventCode": 200});
+		},
 	}
 };
+
+var sendLogEntry = function(entry)
+{
+	$.post(
+		"save-log",
+		{
+			sessionId: sessionId,
+			eventCode: entry["eventCode"],
+			meta: JSON.stringify(entry["meta"]),
+		},
+		function(data)
+		{
+			if (!(data && data["logId"])) // No action required for success.
+			{
+				console.log("Error: no log ID returned from server after request to save log.");
+			}
+		},
+		"json"
+	).fail(function(data)
+	{
+		console.log("Error: request to save log failed; the following response was returned:");
+		console.log(data.responseJSON);
+	});
+}
 
 var continuePreTrialTimeline = function()
 {
@@ -440,6 +468,17 @@ var continuePreTrialTimeline = function()
 			"and press the Submit button when you are finished to continue watching the video clip.</p>",
 	};
 	timelineToAdd.push(instructionsBlock);
+
+	// Shown while waiting for the AJAX request to finish. User can't do anything; the callbacks clear this screen when appropriate
+	var loadingBlock =
+	{
+		type: "html-keyboard-response",
+		stimulus: "<p>Loading...</p>",
+		choices: jsPsych.NO_KEYS,
+		isLoadScreen: true, // Custom flag so we can make sure we're not clearing something else
+		on_start: linkSession,
+	};
+	timelineToAdd.push(loadingBlock);
 	
 	var waitScannerBlock =
 	{
@@ -473,22 +512,15 @@ var continuePreTrialTimeline = function()
 				console.log(data.responseJSON);
 				failOurFault();
 			})
-		}
+		},
+		on_finish: function()
+		{
+			sendLogEntry({"eventCode": 100});
+		},
 	};
 	timelineToAdd.push(waitScannerBlock);
 	
 	timelineToAdd.push(fixationPointBlockForSeconds(10));
-	
-	// Shown while waiting for the AJAX request to finish. User can't do anything; the callbacks clear this screen when appropriate
-	var loadingBlock =
-	{
-		type: "html-keyboard-response",
-		stimulus: "<p>Loading...</p>",
-		choices: jsPsych.NO_KEYS,
-		isLoadScreen: true, // Custom flag so we can make sure we're not clearing something else
-		on_start: linkSession,
-	};
-	timelineToAdd.push(loadingBlock);
 	
 	jsPsych.addNodeToEndOfTimeline({timeline: timelineToAdd}, new Function); // Apparent bug as of Feb 3, 2018 requires empty callback
 }
@@ -567,8 +599,16 @@ var videoBlockForStimAndTimes = function(stimId, startTime, stopTime)
 		promptEnableAutoplay: true,
 		width: 850,
 		height: 650,
-		on_start: function() { $(document).on("visibilitychange", visibilityListener); },
-		on_finish: function() { $(document).off("visibilitychange", visibilityListener); },
+		on_start: function() {
+			$(document).on("visibilitychange", visibilityListener);
+			metaObj = {"stimId": stimId, "stimName": stimWithId(stimId).filename, "startStamp": startTime};
+			sendLogEntry({"eventCode": 300, "meta": metaObj});
+		},
+		on_finish: function()
+		{
+			$(document).off("visibilitychange", visibilityListener);
+			
+		},
 	};
 	return block;
 };
@@ -582,6 +622,11 @@ var ratingBlockForStimAndTimes = function(stimId, startTime, stopTime)
 		logCommits: true,
 		topMsg: "Please rate each of the following emotions:",
 		bottomMsg: "Press 'submit' when finished.",
+		on_start: function()
+		{
+			metaObj = {"stimId": stimId, "stimName": stimWithId(stimId).filename, "startStamp": startTime, "stopTime": stopTime};
+			sendLogEntry({"eventCode": 400, "meta": metaObj});
+		},
 		on_finish: function(ratingData)
 		{
 			var payload =
@@ -719,6 +764,10 @@ var finishTimeline = function()
 			jsPsych.endExperiment("Sorry, you have already watched all available videos. Thank you for your participation.");
 			return;
 		}
+	}
+	else
+	{
+		sendLogEntry({"eventCode": 110});
 	}
 
 	// TODO make this better
