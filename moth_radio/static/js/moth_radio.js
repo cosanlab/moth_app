@@ -247,7 +247,7 @@ if (!Turkframe.inTurkframeMode())
 		preamble: "Please enter your information.",
 		// Have to specify all properties in `questions` because of a bug in the current version of
 		// the survey-text plugin (as of Jan 17, 2018).
-		questions: [{prompt: "Name:", rows: 1, columns: 40, value: "",}, {prompt: "Email:", rows: 1, columns: 40, value: ""}],
+		questions: [{prompt: "ID:", rows: 1, columns: 40, value: "",}, {prompt: "Project:", rows: 1, columns: 40, value: ""}],
 		on_finish: function(data)
 		{
 			answers = JSON.parse(data.responses);
@@ -356,6 +356,10 @@ var fixationPointBlockForSeconds = function(seconds)
 		{
 			sendLogEntry({"eventCode": 200});
 		},
+		on_finish: function()
+		{
+			sendLogEntry({"eventCode": 299});
+		},
 	}
 };
 
@@ -462,7 +466,7 @@ var continuePreTrialTimeline = function()
 	var instructionsBlock =
 	{
 		type: "html-keyboard-response",
-		stimulus: "<p>You are going to watch a video clip. The clip will pause  " +
+		stimulus: "<p>You are going to watch a series of video and audio clips. The clip will pause  " +
 			"at random times and you will be presented with a group of ratings to make.</p>" +
 			"<p>Please rate your emotions at the time of the rating," +
 			"and press the Submit button when you are finished to continue watching the video clip.</p>",
@@ -515,7 +519,8 @@ var continuePreTrialTimeline = function()
 		},
 		on_finish: function()
 		{
-			sendLogEntry({"eventCode": 100});
+			metaObj = {"stimId": "Scan", "stimName": "ScanStart", "startStamp": "NaN"};
+			sendLogEntry({"eventCode": 100, "meta": metaObj});		
 		},
 	};
 	timelineToAdd.push(waitScannerBlock);
@@ -593,7 +598,7 @@ var videoBlockForStimAndTimes = function(stimId, startTime, stopTime)
 	{
 		type: "video",
 		sources: [(stimRemote.length > 0 ? stimRemote : stimBase) + stimWithId(stimId).filename],
-		start: startTime,
+		start: startTime > 5 ? startTime - 5 : 0,
 		stop: stopTime,
 		indicateLoading: true,
 		promptEnableAutoplay: true,
@@ -607,7 +612,7 @@ var videoBlockForStimAndTimes = function(stimId, startTime, stopTime)
 		on_finish: function()
 		{
 			$(document).off("visibilitychange", visibilityListener);
-			
+			sendLogEntry({"eventCode": 399, "meta": metaObj});
 		},
 	};
 	return block;
@@ -629,6 +634,7 @@ var ratingBlockForStimAndTimes = function(stimId, startTime, stopTime)
 		},
 		on_finish: function(ratingData)
 		{
+			sendLogEntry({"eventCode": 499, "meta": metaObj});
 			var payload =
 			{
 				sessionId: sessionId,
@@ -676,18 +682,30 @@ var buildTearBuildBlocks = function()
 	{
 		type: "html-keyboard-response",
 		choice: jsPsych.ANY_KEY,
-		stimulus: "Preparing next video..."
+		stimulus: "Preparing next video...",
+		on_start: function()
+		{
+			sendLogEntry({"eventCode": 500});
+		},
+		on_finish: function()
+		{
+			sendLogEntry({"eventCode": 599});
+		},
 	};
 	thisTimeline.push(waitBlock);
 
 	var loadBlock =
 	{
 		type: "html-keyboard-response",
-		choice: jsPsych.NO_KEYS,
+		choices: jsPsych.NO_KEYS,
 		isWaitingScreen: true,
 		stimulus: "Please wait, scanner loading...",
 		on_start: function()
 		{
+			metaObj = {"stimId": "ScanWait", "stimName": "ScanWait", "startStamp": "NaN"};
+			sendLogEntry({"eventCode": 99, "meta": metaObj});
+
+
 			$.get(
 			"cleanup",
 			function()
@@ -696,11 +714,14 @@ var buildTearBuildBlocks = function()
 				$.get("scanner-ready",
 				function(data)
 				{
+					console.log("heard back from scanner ready")
+					_clean = true
 					if (data["scannerReady"] = true)
 					{
 						// Clear the loading screen now and move on
 						if (jsPsych.currentTrial()["isWaitingScreen"] === true)
 						{
+							console.log("moving on after scanner ready")
 							jsPsych.finishTrial();
 						}
 					}
@@ -724,7 +745,14 @@ var buildTearBuildBlocks = function()
 				failOurFault();
 			});
 		},
+		on_finish: function()
+		{
+			console.log("scanner ready block finishing")
+			metaObj = {"stimId": "Scan", "stimName": "ScanStart", "startStamp": "NaN"};
+			sendLogEntry({"eventCode": 100, "meta": metaObj});
+		},
 	};
+
 	thisTimeline.push(loadBlock)
 
 	thisTimeline.push(crossBlock);
@@ -733,7 +761,7 @@ var buildTearBuildBlocks = function()
 }
 
 // Canned between-videos message
-var inBetweenBlock = fixationPointBlockForSeconds(5);
+// var inBetweenBlock = fixationPointBlockForSeconds(5);
 
 // Finish constructing the timeline by adding the actual videos and ratings
 // Called by linkSession()
@@ -769,12 +797,6 @@ var finishTimeline = function()
 	{
 		sendLogEntry({"eventCode": 110});
 	}
-
-	// TODO make this better
-	// Limit each run to fn videos
-	var runVideoCount = 4; // 4 videos is a run
-	longSequence = sequence
-	sequence = sequence.slice(0, runVideoCount);
 	
 	var timelineToAdd = [];
 	
@@ -784,6 +806,8 @@ var finishTimeline = function()
 		var stimObj = sequence[i],
 			thisStim = stimObj["stimulus"],
 			starts = stimObj["starts"];
+
+		console.log("STIM: " + stimWithId(thisStim).filename + " #" + thisStim);
 		
 		for (var j = 0; j < starts.length; j ++)
 		{
@@ -800,8 +824,12 @@ var finishTimeline = function()
 		// Add an in-between block if there is another video to play
 		if (i < (sequence.length -1 ))
 		{
-			timelineToAdd = timelineToAdd.concat(buildTearBuildBlocks())
-			timelineToAdd.push(inBetweenBlock);
+			timelineToAdd = timelineToAdd.concat(buildTearBuildBlocks());
+			// timelineToAdd.push(inBetweenBlock);
+		}
+		else
+		{
+			timelineToAdd = timelineToAdd.concat(fixationPointBlockForSeconds(10));
 		}
 	}
 	
@@ -842,6 +870,8 @@ var finishTimeline = function()
 		// on_finish: function() { Turkframe.messageFinished({sessionId: sessionId}) }, // Extra fallback just in case.
 	 };
 	timelineToAdd.push(endMsg);
+
+	console.log(timelineToAdd);
 	
 	jsPsych.addNodeToEndOfTimeline({timeline: timelineToAdd}, new Function); // Apparent bug as of Feb 3, 2018 requires empty callback
 	
@@ -853,7 +883,7 @@ var finishTimeline = function()
 			{
 				sessionId: sessionId,
 				emotions: JSON.stringify(emotions),
-				sequence: JSON.stringify(longSequence),
+				sequence: JSON.stringify(sequence),
 			},
 			function(data)
 			{

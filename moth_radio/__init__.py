@@ -9,10 +9,10 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__)
 app.config['wave'] = "1.0"
 app.config['num_stops'] = 1 # usually ignored
-app.config['num_stim'] = 3
+app.config['num_stim'] = 9
 app.config['use_tag_order'] = 0
 app.config['sample_interval'] = 90
-app.config['sample_time_jitter'] = 0.1
+app.config['sample_time_jitter'] = 0.33
 app.config['tags'] = "scan0"
 app.config['hit_duration_mins'] = 150
 app.config['stim_base'] = "static/stim/"
@@ -26,7 +26,7 @@ app.config['scanner_settings'] = {
 	'baud': 115200,
 	'timeout':0
 }
-app.config['use_biopac'] = False
+app.config['use_biopac'] = True
 db = SQLAlchemy(app)
 
 from moth_radio import models, views, apis
