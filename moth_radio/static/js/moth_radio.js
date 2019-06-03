@@ -231,8 +231,8 @@ if (!Turkframe.inTurkframeMode())
 	var accountPrompt =
 	{
 		type: "html-button-response",
-		stimulus: "<p>Is this an existing cosanlabradio account or create a new one?</p>",
-		choices: ["Log In", "Create Account"],
+		stimulus: "<p>Is this an existing participant or a new one?</p>",
+		choices: ["Log In", "Register Participant"],
 		on_finish: function(data)
 		{
 			hasAccount = data["button_pressed"] == 0 ? true : false;
@@ -244,10 +244,10 @@ if (!Turkframe.inTurkframeMode())
 	var infoBlock =
 	{
 		type: "survey-text",
-		preamble: "Please enter your information.",
+		preamble: "Please enter user information.",
 		// Have to specify all properties in `questions` because of a bug in the current version of
 		// the survey-text plugin (as of Jan 17, 2018).
-		questions: [{prompt: "ID:", rows: 1, columns: 40, value: "",}, {prompt: "Project:", rows: 1, columns: 40, value: ""}],
+		questions: [{prompt: "ID:", rows: 1, columns: 40, value: "",}, {prompt: "Study:", rows: 1, columns: 40, value: ""}],
 		on_finish: function(data)
 		{
 			answers = JSON.parse(data.responses);
@@ -462,17 +462,6 @@ var continuePreTrialTimeline = function()
 		timelineToAdd.push(humanTestLoop);
 	}
 	
-	// Instructions message, creating the session when done
-	var instructionsBlock =
-	{
-		type: "html-keyboard-response",
-		stimulus: "<p>You are going to watch a series of video and audio clips. The clip will pause  " +
-			"at random times and you will be presented with a group of ratings to make.</p>" +
-			"<p>Please rate your emotions at the time of the rating," +
-			"and press the Submit button when you are finished to continue watching the video clip.</p>",
-	};
-	timelineToAdd.push(instructionsBlock);
-
 	// Shown while waiting for the AJAX request to finish. User can't do anything; the callbacks clear this screen when appropriate
 	var loadingBlock =
 	{
@@ -483,6 +472,17 @@ var continuePreTrialTimeline = function()
 		on_start: linkSession,
 	};
 	timelineToAdd.push(loadingBlock);
+	
+	// Instructions message, creating the session when done
+	var instructionsBlock =
+	{
+		type: "html-keyboard-response",
+		stimulus: "<p>You are going to watch a video clip. The clip will pause  " +
+			"at random times and you will be presented with a group of ratings to make.</p>" +
+			"<p>Please rate your emotions at the time of the rating," +
+			"and press the Submit button when you are finished to continue watching the video clip.</p>",
+	};
+	timelineToAdd.push(instructionsBlock);
 	
 	var waitScannerBlock =
 	{
@@ -519,7 +519,7 @@ var continuePreTrialTimeline = function()
 		},
 		on_finish: function()
 		{
-			metaObj = {"stimId": "Scan", "stimName": "ScanStart", "startStamp": "NaN"};
+			metaObj = {"stimId": "Scan", "stimName": "ScanStart", "startStamp": NaN, "stopTime": NaN};
 			sendLogEntry({"eventCode": 100, "meta": metaObj});		
 		},
 	};
@@ -606,7 +606,7 @@ var videoBlockForStimAndTimes = function(stimId, startTime, stopTime)
 		height: 650,
 		on_start: function() {
 			$(document).on("visibilitychange", visibilityListener);
-			metaObj = {"stimId": stimId, "stimName": stimWithId(stimId).filename, "startStamp": startTime};
+			metaObj = {"stimId": stimId, "stimName": stimWithId(stimId).filename, "startStamp": startTime, "stopTime": NaN};
 			sendLogEntry({"eventCode": 300, "meta": metaObj});
 		},
 		on_finish: function()
@@ -697,31 +697,26 @@ var buildTearBuildBlocks = function()
 	var loadBlock =
 	{
 		type: "html-keyboard-response",
-		choices: jsPsych.NO_KEYS,
+		choice: jsPsych.NO_KEYS,
 		isWaitingScreen: true,
 		stimulus: "Please wait, scanner loading...",
 		on_start: function()
 		{
-			metaObj = {"stimId": "ScanWait", "stimName": "ScanWait", "startStamp": "NaN"};
+			metaObj = {"stimId": "ScanWait", "stimName": "ScanWait", "startStamp": NaN, "stopTime": NaN};
 			sendLogEntry({"eventCode": 99, "meta": metaObj});
-
 
 			$.get(
 			"cleanup",
 			function()
 			{
-				console.log("Call to `cleanup` succeeded.")
 				$.get("scanner-ready",
 				function(data)
 				{
-					console.log("heard back from scanner ready")
-					_clean = true
 					if (data["scannerReady"] = true)
 					{
 						// Clear the loading screen now and move on
 						if (jsPsych.currentTrial()["isWaitingScreen"] === true)
 						{
-							console.log("moving on after scanner ready")
 							jsPsych.finishTrial();
 						}
 					}
@@ -747,8 +742,7 @@ var buildTearBuildBlocks = function()
 		},
 		on_finish: function()
 		{
-			console.log("scanner ready block finishing")
-			metaObj = {"stimId": "Scan", "stimName": "ScanStart", "startStamp": "NaN"};
+			metaObj = {"stimId": "Scan", "stimName": "ScanStart", "startStamp": NaN, "stopTime": NaN};
 			sendLogEntry({"eventCode": 100, "meta": metaObj});
 		},
 	};
@@ -870,8 +864,6 @@ var finishTimeline = function()
 		// on_finish: function() { Turkframe.messageFinished({sessionId: sessionId}) }, // Extra fallback just in case.
 	 };
 	timelineToAdd.push(endMsg);
-
-	console.log(timelineToAdd);
 	
 	jsPsych.addNodeToEndOfTimeline({timeline: timelineToAdd}, new Function); // Apparent bug as of Feb 3, 2018 requires empty callback
 	

@@ -430,7 +430,6 @@ def latestRatingForSession(session = None):
 
 @app.route("/scanner-ready", methods = ["GET"])
 def scannerReady():
-	print "starting scanner ready: " + str(time.time())
 	if not checkValidOrigin(request): return badOriginResponse
 	
 	validTrigger = '5'
@@ -441,22 +440,18 @@ def scannerReady():
 		ser.flushInput()
 		
 	while trigger != validTrigger:
-	   # print(trigger)
 	   if app.config['scanning']:
 		   trigger= ser.read()
 	   else:
-	   	   # print "sleeping for real"
 		   time.sleep(10)
 		   trigger = validTrigger	
 
-	print(trigger)
 	if app.config['use_biopac']:
 	   lj = U3()
 	   lj.setFIOState(0,1)
 	   lj.close() # Turn trigger on
 
 	respDict = {"scannerReady": True}
-	print "finishing scanner ready: " + str(time.time())
 	return jsonify(respDict)
 
 @app.route("/cleanup", methods = ["GET"])
