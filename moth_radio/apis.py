@@ -369,11 +369,9 @@ def stopSession(sessionId = None):
 # Requires a session ID as `sessionId`.
 # Optinally accepts an `exitSurvey` JSON string. 
 # Responds with the session's id.
-import pdb
 @app.route("/stop-session", methods = ["GET"])
 def stopSesh():
-	# if not checkValidOrigin(request): return badOriginResponse
-	# pdb.set_trace()
+	if not checkValidOrigin(request): return badOriginResponse
 	sessionId = request.args.get("sessionId")
 	# exitSurvey = request.form.get("exitSurvey")
 	if not sessionId: return badRequestResponse
@@ -453,6 +451,14 @@ def scannerReady():
 
 	respDict = {"scannerReady": True}
 	return jsonify(respDict)
+
+@app.route("/biopac", methods = ["GET"])
+def biopac():
+	if app.config['use_biopac']:
+		lj = U3()
+		lj.setFIOState(0,1)
+		lj.close() # Turn trigger on
+	return "Biopac"
 
 @app.route("/cleanup", methods = ["GET"])
 def cleanup():

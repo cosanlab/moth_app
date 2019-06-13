@@ -472,7 +472,7 @@ var continuePreTrialTimeline = function()
 		on_start: linkSession,
 	};
 	timelineToAdd.push(loadingBlock);
-	
+
 	// Instructions message, creating the session when done
 	var instructionsBlock =
 	{
@@ -488,35 +488,49 @@ var continuePreTrialTimeline = function()
 	{
 		type: "html-keyboard-response",
 		stimulus: "<p>Waiting for scanner...</p>",
-		choices: [jsPsych.NO_KEYS,],
-		isWaitingScreen: true,
+		choices: ['5'],
+
 		on_start: function()
 		{
-			$.get("scanner-ready",
-				function(data)
-				{
-					if (data["scannerReady"] = true)
-					{
-						// Clear the loading screen now and move on
-						if (jsPsych.currentTrial()["isWaitingScreen"] === true)
-						{
-							jsPsych.finishTrial();
-						}
-					}
-					else
-					{
-						console.log("Error: scanner not ready.")
-						console.log(data);
-						failOurFault();
-					}
-				}
-			).fail(function(data)
+			$.get(
+			"biopac",
+			function()
 			{
-				console.log("Error: request to check scanner readiness failed; the following response was returned:");
-				console.log(data.responseJSON);
+			console.log("Biopac wooorked");
+
+			}).fail(function()
+			{
+			console.log("Error: call to `cleanup` failed.");
 				failOurFault();
-			})
+			});
+			metaObj = {"stimId": "ScanWait", "stimName": "ScanWait", "startStamp": NaN, "stopTime": NaN};
+			sendLogEntry({"eventCode": 99, "meta": metaObj});
 		},
+		// 	$.get("scanner-ready",
+		// 		function(data)
+		// 		{
+		// 			if (data["scannerReady"] = true)
+		// 			{
+		// 				// Clear the loading screen now and move on
+		// 				if (jsPsych.currentTrial()["isWaitingScreen"] === true)
+		// 				{
+		// 					jsPsych.finishTrial();
+		// 				}
+		// 			}
+		// 			else
+		// 			{
+		// 				console.log("Error: scanner not ready.")
+		// 				console.log(data);
+		// 				failOurFault();
+		// 			}
+		// 		}
+		// 	).fail(function(data)
+		// 	{
+		// 		console.log("Error: request to check scanner readiness failed; the following response was returned:");
+		// 		console.log(data.responseJSON);
+		// 		failOurFault();
+		// 	})
+		// },
 		on_finish: function()
 		{
 			metaObj = {"stimId": "Scan", "stimName": "ScanStart", "startStamp": NaN, "stopTime": NaN};
@@ -681,8 +695,9 @@ var buildTearBuildBlocks = function()
 	var waitBlock =
 	{
 		type: "html-keyboard-response",
-		choice: jsPsych.ANY_KEY,
 		stimulus: "Preparing next video...",
+		choices: ['1'],
+
 		on_start: function()
 		{
 			sendLogEntry({"eventCode": 500});
@@ -697,48 +712,49 @@ var buildTearBuildBlocks = function()
 	var loadBlock =
 	{
 		type: "html-keyboard-response",
-		choice: jsPsych.NO_KEYS,
-		isWaitingScreen: true,
+		choices: ['5'],
+		// isWaitingScreen: true,
 		stimulus: "Please wait, scanner loading...",
+
 		on_start: function()
 		{
 			metaObj = {"stimId": "ScanWait", "stimName": "ScanWait", "startStamp": NaN, "stopTime": NaN};
 			sendLogEntry({"eventCode": 99, "meta": metaObj});
 
-			$.get(
-			"cleanup",
-			function()
-			{
-				$.get("scanner-ready",
-				function(data)
-				{
-					if (data["scannerReady"] = true)
-					{
-						// Clear the loading screen now and move on
-						if (jsPsych.currentTrial()["isWaitingScreen"] === true)
-						{
-							jsPsych.finishTrial();
-						}
-					}
-					else
-					{
-						console.log("Error: scanner not ready.")
-						console.log(data);
-						failOurFault();
-					}
-				}
-				).fail(function(data)
-				{
-					console.log("Error: request to check scanner readiness failed; the following response was returned:");
-					console.log(data.responseJSON);
-					failOurFault();
-				});
-			}
-			).fail(function()
-			{
-				console.log("Error: call to `cleanup` failed.");
-				failOurFault();
-			});
+			// $.get(
+			// "cleanup",
+			// function()
+			// {
+			// 	$.get("scanner-ready",
+			// 	function(data)
+			// 	{
+			// 		if (data["scannerReady"] = true)
+			// 		{
+			// 			// Clear the loading screen now and move on
+			// 			if (jsPsych.currentTrial()["isWaitingScreen"] === true)
+			// 			{
+			// 				jsPsych.finishTrial();
+			// 			}
+			// 		}
+			// 		else
+			// 		{
+			// 			console.log("Error: scanner not ready.")
+			// 			console.log(data);
+			// 			failOurFault();
+			// 		}
+			// 	}
+			// 	).fail(function(data)
+			// 	{
+			// 		console.log("Error: request to check scanner readiness failed; the following response was returned:");
+			// 		console.log(data.responseJSON);
+			// 		failOurFault();
+			// 	});
+			// }
+			// ).fail(function()
+			// {
+			// 	console.log("Error: call to `cleanup` failed.");
+			// 	failOurFault();
+			// });
 		},
 		on_finish: function()
 		{
@@ -777,7 +793,7 @@ var finishTimeline = function()
 	if (!resumedSession)
 	{
 		// Each user will have emotions presented in a random order, but the order will remain consistent for that user
-		emotions = jsPsych.randomization.shuffle(["Amusement", "Anger", "Anxiety", "Boredom", "Disgust", "Cringe", "Endearment", "Fear", "Frustration", "Hope", "Joy", "Pride", "Relief", "Sadness", "Surprise",]);
+		emotions = jsPsych.randomization.shuffle(["Amusement", "Anger", "Anxiety", "Boredom", "Discomfort", "Disgust", "Endearment", "Fear", "Frustration", "Hope", "Joy", "Pride", "Relief", "Sadness", "Surprise",]);
 		
 		// Build the sequence (sets the `sequence` global)
 		var seqSuccess = buildSequence();
@@ -821,9 +837,37 @@ var finishTimeline = function()
 			timelineToAdd = timelineToAdd.concat(buildTearBuildBlocks());
 			// timelineToAdd.push(inBetweenBlock);
 		}
+		// Clean up after the last video
 		else
 		{
-			timelineToAdd = timelineToAdd.concat(fixationPointBlockForSeconds(10));
+			var afterLastVideoBlocks = [];
+			afterLastVideoBlocks.push(fixationPointBlockForSeconds(10));
+			var cleanupBlock =
+			{
+				type: "html-keyboard-response",
+				stimulus: "<p></p>",
+				choices: [jsPsych.NO_KEYS,],
+				isWaitingScreen: true,
+				on_start: function()
+				{
+					$.get(
+					"cleanup",
+					function()
+					{
+						// Clear the loading screen now and move on
+						if (jsPsych.currentTrial()["isWaitingScreen"] === true)
+						{
+							jsPsych.finishTrial();
+						}
+					}).fail(function()
+					{
+					console.log("Error: call to `cleanup` failed.");
+						failOurFault();
+					});
+				},
+			};
+			afterLastVideoBlocks.push(cleanupBlock);
+			timelineToAdd = timelineToAdd.concat(afterLastVideoBlocks);
 		}
 	}
 	
@@ -916,7 +960,7 @@ var finishTimeline = function()
 // Called at jsPsych's on_finish
 var stopSession = function()
 {
-	$.post(
+	$.get(
 		"stop-session",
 		{
 			sessionId: sessionId,
