@@ -66,6 +66,40 @@ var createTimesForDurationAndSampleInterval = function(duration, sampleInterval,
 	return starts;
 };
 
+// Split a video into bins of a given length and sample once from a uniform distribution of times within each bin.
+var createTimesForDurationAndBinLength = function(duration, binLength = 90, binPadding = 5)
+{
+	// Round up because the last bin can be less than the full bin length
+	var numBins = Math.ceil(duration / binLength);
+	// Allow padding on the edge of each bin to prevent stops too close together
+	var possibleOffsets = _.range(binPadding, binLength - binPadding);
+
+	// Loop through all but the last stop (which we treat separately)
+	var starts = [0];
+	for (var i = 0; i < numBins - 1; i ++)
+	{
+		// Pick an offset within this bin, and add to the left edge of the bin to get an actual timestamp
+		var thisOffset = _.sample(possibleOffsets);
+		var thisTimestamp = i * binLength + thisOffset;
+		starts.push(thisTimestamp)
+	}
+
+	// We need at least 4 times the padding to add a last stop, otherwise one or both of the last clips
+	// (the one leading up to the last stop and the one between it and the end) will be less than the padding demands.
+	// So, if less than padding*4 seconds reamin, don't add a last stop and just have the last clip be longer than usual
+	var remainingTime = duration - (i * binLength);
+	if (remainingTime > binPadding * 4)
+	{
+		// If we do have time for a last stop, add it, making sure that the time between it and the
+		// end of the video is at least padding * 2
+		var lastPossibleOffsets = _.range(binPadding, remainingTime - binPadding * 2);
+		var lastTimestamp = i * binLength + _.sample(lastPossibleOffsets);
+		starts.push(lastTimestamp);
+	}
+
+	return starts;
+}
+
 var visualizeTimes = function(width, height, duration)
 {
 	var tests = "";
@@ -191,7 +225,8 @@ var buildSequence = function()
 	for (var i = 0; i < selectedStim.length; i ++)
 	{
 		var stim = selectedStim[i],
-			starts = createTimesForDurationAndSampleInterval(stim.duration, sampleInterval, sampleTimeJitter),
+			// starts = createTimesForDurationAndSampleInterval(stim.duration, sampleInterval, sampleTimeJitter),
+			starts = createTimesForDurationAndBinLength(stim.duration);
 			stimObj = 
 			{
 				"stimulus": stim.id,
@@ -201,6 +236,7 @@ var buildSequence = function()
 	}
 	
 	sequence = newSeq;
+	console.log(sequence)
 	
 	return true;
 	
@@ -496,13 +532,12 @@ var continuePreTrialTimeline = function()
 			"biopac",
 			function()
 			{
-			console.log("Biopac wooorked");
-
 			}).fail(function()
 			{
-			console.log("Error: call to `cleanup` failed.");
+			console.log("Error: call to `biopac` failed.");
 				failOurFault();
 			});
+
 			metaObj = {"stimId": "ScanWait", "stimName": "ScanWait", "startStamp": NaN, "stopTime": NaN};
 			sendLogEntry({"eventCode": 99, "meta": metaObj});
 		},
