@@ -675,7 +675,9 @@ var ratingBlockForStimAndTimes = function(stimId, startTime, stopTime)
 		items: emotions,
 		logCommits: true,
 		topMsg: "Please rate each of the following emotions:",
-		bottomMsg: "Press 'submit' when finished.",
+		bottomMsg: "Right click when finished.",
+		rightClickSubmit: true,
+		defaultNone: true,
 		on_start: function()
 		{
 			metaObj = {"stimId": stimId, "stimName": stimWithId(stimId).filename, "startStamp": startTime, "stopTime": stopTime};
