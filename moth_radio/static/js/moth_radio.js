@@ -1040,7 +1040,7 @@ jsPsych.init({
 if (useScannerTheme) {
 	var scannerTheme = document.createElement("style");
 	scannerTheme.innerHTML = "body{color: white; background-color: black;}";
-	jsPsych.getDisplayElement().appendChild(scannerTheme);
+	document.body.appendChild(scannerTheme);
 }
 
 // If no login work needs to be done, start the rest of the pre-trial timeline
