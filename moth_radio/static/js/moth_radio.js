@@ -678,6 +678,8 @@ var ratingBlockForStimAndTimes = function(stimId, startTime, stopTime)
 		bottomMsg: "Right click when finished.",
 		rightClickSubmit: true,
 		defaultNone: true,
+		showShadows: true,
+		submitTimeout: 90,
 		on_start: function()
 		{
 			metaObj = {"stimId": stimId, "stimName": stimWithId(stimId).filename, "startStamp": startTime, "stopTime": stopTime};
