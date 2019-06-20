@@ -1032,6 +1032,12 @@ var failOurFault = function()
 	Turkframe.messageFinished({sessionId: sessionId});
 }
 
+if (useScannerTheme) {
+	var scannerTheme = document.createElement("style");
+	scannerTheme.innerHTML = "body{color: white; background-color: black;}";
+	jsPsych.getDisplayElement().appendChild(scannerTheme);
+}
+
 // Run the experiment
 jsPsych.init({
 	timeline: timeline,

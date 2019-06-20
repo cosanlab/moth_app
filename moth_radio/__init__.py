@@ -27,6 +27,7 @@ app.config['scanner_settings'] = {
 	'timeout':0
 }
 app.config['use_biopac'] = False
+app.config['use_scanner_theme'] = True
 db = SQLAlchemy(app)
 
 from moth_radio import models, views, apis
