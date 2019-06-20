@@ -867,7 +867,9 @@ var finishTimeline = function()
 			else stop = stimWithId(thisStim).duration;
 			
 			timelineToAdd.push(videoBlockForStimAndTimes(thisStim, thisStart, stop));
-			timelineToAdd.push(ratingBlockForStimAndTimes(thisStim, thisStart, stop));
+			var ratingBlock = ratingBlockForStimAndTimes(thisStim, thisStart, stop);
+			if (j == 0) ratingBlock["showShadows"] = false;
+			timelineToAdd.push(ratingBlock);
 		}
 		
 		// Add an in-between block if there is another video to play
