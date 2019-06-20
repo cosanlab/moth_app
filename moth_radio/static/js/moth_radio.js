@@ -1032,16 +1032,16 @@ var failOurFault = function()
 	Turkframe.messageFinished({sessionId: sessionId});
 }
 
+// Run the experiment
+jsPsych.init({
+	timeline: timeline,
+});
+
 if (useScannerTheme) {
 	var scannerTheme = document.createElement("style");
 	scannerTheme.innerHTML = "body{color: white; background-color: black;}";
 	jsPsych.getDisplayElement().appendChild(scannerTheme);
 }
-
-// Run the experiment
-jsPsych.init({
-	timeline: timeline,
-});
 
 // If no login work needs to be done, start the rest of the pre-trial timeline
 if (Turkframe.inTurkframeMode())
