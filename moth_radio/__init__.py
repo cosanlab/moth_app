@@ -4,9 +4,14 @@ from flask import Flask, send_file, make_response, render_template, request
 from flask_script import Manager, Shell
 from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
+import logging
+import sys
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__)
+logging.basicConfig(filename='error.log',level=logging.DEBUG)
+logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
+
 app.config['wave'] = "1.0"
 app.config['num_stops'] = 1 # usually ignored
 app.config['num_stim'] = 9
