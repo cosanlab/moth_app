@@ -26,7 +26,7 @@ app.config['scanner_settings'] = {
 	'baud': 115200,
 	'timeout':0
 }
-app.config['use_biopac'] = False
+app.config['use_biopac'] = True
 app.config['use_scanner_theme'] = True
 db = SQLAlchemy(app)
 

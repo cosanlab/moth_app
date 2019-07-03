@@ -513,10 +513,10 @@ var continuePreTrialTimeline = function()
 	var instructionsBlock =
 	{
 		type: "html-keyboard-response",
-		stimulus: "<p>You are going to watch a video clip. The clip will pause  " +
+		stimulus: "<p>You are going to watch a series of video clips. The clips will pause  " +
 			"at random times and you will be presented with a group of ratings to make.</p>" +
-			"<p>Please rate your emotions at the time of the rating," +
-			"and press the Submit button when you are finished to continue watching the video clip.</p>",
+			"<p>Please rate your emotions at the time of the rating, " +
+			"and right click when you are finished to continue watching.</p>",
 	};
 	timelineToAdd.push(instructionsBlock);
 	
@@ -674,7 +674,7 @@ var ratingBlockForStimAndTimes = function(stimId, startTime, stopTime)
 		type: "rapid-rate",
 		items: emotions,
 		logCommits: true,
-		topMsg: "Please rate each of the following emotions:",
+		topMsg: "Please rate how you're feeling on the following emotions:",
 		bottomMsg: "Right click when finished.",
 		rightClickSubmit: true,
 		defaultNone: true,
@@ -832,7 +832,7 @@ var finishTimeline = function()
 	if (!resumedSession)
 	{
 		// Each user will have emotions presented in a random order, but the order will remain consistent for that user
-		emotions = jsPsych.randomization.shuffle(["Amusement", "Anger", "Anxiety", "Boredom", "Discomfort", "Disgust", "Endearment", "Fear", "Frustration", "Hope", "Joy", "Pride", "Relief", "Sadness", "Surprise",]);
+		emotions = jsPsych.randomization.shuffle(['Angry', 'Amused', 'Hopeful', 'Anxious', 'Sad', 'Bored', 'Uncomfortable', 'Disgusted', 'Moved', 'Relived', 'Proud', 'Surprised', 'Happy', 'Frustrated', 'Afraid', 'Inspired',]);
 		
 		// Build the sequence (sets the `sequence` global)
 		var seqSuccess = buildSequence();
