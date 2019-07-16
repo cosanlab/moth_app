@@ -1,6 +1,4 @@
 moth_radio/static/stim/*
-!moth_radio/static/stim/.gitkeep 
-
 *.DS_Store
 
 # Byte-compiled / optimized / DLL files
