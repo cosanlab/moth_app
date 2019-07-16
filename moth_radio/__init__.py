@@ -25,14 +25,8 @@ app.config['stim_base'] = "static/stim/"
 app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://moth_radio:yourpassword@localhost/moth_radio" # DON'T COMMIT PASSWORDS!
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = 0
-app.config['scanning'] = False
-app.config['scanner_settings'] = {
-	'mount': '/dev/tty.KeySerial1',
-	'baud': 115200,
-	'timeout':0
-}
+app.config['scanning'] = True
 app.config['use_biopac'] = True
-app.config['use_scanner_theme'] = True
 db = SQLAlchemy(app)
 
 from moth_radio import models, views, apis

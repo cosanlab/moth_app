@@ -759,41 +759,6 @@ var buildTearBuildBlocks = function()
 		{
 			metaObj = {"stimId": "ScanWait", "stimName": "ScanWait", "startStamp": NaN, "stopTime": NaN};
 			sendLogEntry({"eventCode": 99, "meta": metaObj});
-
-			// $.get(
-			// "cleanup",
-			// function()
-			// {
-			// 	$.get("scanner-ready",
-			// 	function(data)
-			// 	{
-			// 		if (data["scannerReady"] = true)
-			// 		{
-			// 			// Clear the loading screen now and move on
-			// 			if (jsPsych.currentTrial()["isWaitingScreen"] === true)
-			// 			{
-			// 				jsPsych.finishTrial();
-			// 			}
-			// 		}
-			// 		else
-			// 		{
-			// 			console.log("Error: scanner not ready.")
-			// 			console.log(data);
-			// 			failOurFault();
-			// 		}
-			// 	}
-			// 	).fail(function(data)
-			// 	{
-			// 		console.log("Error: request to check scanner readiness failed; the following response was returned:");
-			// 		console.log(data.responseJSON);
-			// 		failOurFault();
-			// 	});
-			// }
-			// ).fail(function()
-			// {
-			// 	console.log("Error: call to `cleanup` failed.");
-			// 	failOurFault();
-			// });
 		},
 		on_finish: function()
 		{
@@ -1039,7 +1004,7 @@ jsPsych.init({
 	timeline: timeline,
 });
 
-if (useScannerTheme) {
+if (scanning) {
 	var scannerTheme = document.createElement("style");
 	scannerTheme.innerHTML = "body{color: white; background-color: black;}";
 	document.body.appendChild(scannerTheme);

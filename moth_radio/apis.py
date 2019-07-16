@@ -13,7 +13,6 @@ on your machine at home unless you're in debug mode. Note that this
 from moth_radio import app, db, models
 from flask import request, jsonify
 import json, math, time
-if app.config["scanning"]: import serial
 if app.config["use_biopac"]: from psychopy.hardware.labjacks import U3 
 
 ###### Infrastructure / Helpers ######
@@ -426,27 +425,6 @@ def latestRatingForSession(session = None):
 	if not rating: return False
 	return rating
 
-@app.route("/scanner-ready", methods = ["GET"])
-def scannerReady():
-	if not checkValidOrigin(request): return badOriginResponse
-	
-	validTrigger = '5'
-	trigger=''
-	if  app.config['scanning']:
-		serial_settings = app.config['scanner_settings']
-		ser = serial.Serial(serial_settings['mount'], serial_settings['baud'], timeout = serial_settings['timeout'])
-		ser.flushInput()
-		
-	while trigger != validTrigger:
-	   if app.config['scanning']:
-		   trigger= ser.read()
-	   else:
-		   time.sleep(10)
-		   trigger = validTrigger
-
-	respDict = {"scannerReady": True}
-	return jsonify(respDict)
-
 @app.route("/biopac", methods = ["GET"])
 def biopac():
 	if app.config['use_biopac']:
@@ -461,11 +439,6 @@ def cleanup():
 	   lj = U3()
 	   lj.setFIOState(0,0)
 	   lj.close()
-	if  app.config['scanning']:
-		serial_settings = app.config['scanner_settings']
-		ser = serial.Serial(serial_settings['mount'], serial_settings['baud'], timeout = serial_settings['timeout'])
-		ser.flushInput()
-		ser.close()
 	return "Cleaned up."
 
 def storeLog(log):
