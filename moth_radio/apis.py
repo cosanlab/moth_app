@@ -210,7 +210,6 @@ def startNewSession(labUserId = None, psiturkUid = None, psiturkWorkerId = None,
 # Find the most recent open session for a given user.
 # Requires either a LabUser ID or PsiTurk worker ID.
 # Returns the relevant Session object, or False if none is found.
-# import pdb
 def retrieveOpenSession(labUserId = None, psiturkWorkerId = None):
 	# We need one form of ID or the other
 	if not (labUserId or psiturkWorkerId): return False
@@ -219,11 +218,9 @@ def retrieveOpenSession(labUserId = None, psiturkWorkerId = None):
 		query = query.filter_by(labUserId = labUserId)
 	if psiturkWorkerId:
 		query = query.filter_by(psiturkWorkerId = psiturkWorkerId)
-	# pdb.set_trace()
 	# Sessions must have been started within a certain recency to be re-openable
 	timeout = 60 * app.config["hit_duration_mins"]
 	expDate = math.floor(time.time()) - timeout
-	# pdb.set_trace()
 	# Get the most recent open session for this user, if one exists
 	query = query.filter(\
 							models.Session.stopTime == None,\
@@ -255,10 +252,7 @@ def remainingSequenceForSession(session = None):
 			if not hitLastStim:
 				# If the last stim to be rated hasn't been hit yet and this stim still isn't it,
 				# keep going and do nothing with this one; it's already done.
-				if thisStim != lastRating.stimulusId:
-					print "continuing past "
-					print thisStim
-					continue
+				if thisStim != lastRating.stimulusId: continue
 				# If this stim is the last stim to be rated, note that we've reached it
 				# and figure out which stops have yet to be reached.
 				hitLastStim = True

@@ -193,7 +193,6 @@ var createTimesAvg = function(vidLength, sampleRate, avgDiff , numTrys= 10000, m
 // Called by finishTimeline() for new sessions
 var buildSequence = function()
 {
-	console.log()
 	if (stimuli.length < numStim) return false;
 	
 	var newSeq = [],
@@ -622,7 +621,6 @@ var linkSession = function()
 				stimuli = data["validStim"]; // Always sent
 				emotions = data["emotions"]; // Empty when not resuming open session
 				sequence = data["sequence"]; // Empty when not resuming open session
-				
 				finishTimeline();
 			}
 			else
