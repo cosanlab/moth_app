@@ -14,7 +14,7 @@ logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
 app.config['wave'] = "1.0"
 app.config['num_stops'] = 1 # usually ignored
-app.config['num_stim'] = 9
+app.config['num_stim'] = -1
 app.config['use_tag_order'] = 0
 app.config['sample_interval'] = 90
 app.config['sample_time_jitter'] = 0.33

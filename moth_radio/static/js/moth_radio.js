@@ -193,6 +193,7 @@ var createTimesAvg = function(vidLength, sampleRate, avgDiff , numTrys= 10000, m
 // Called by finishTimeline() for new sessions
 var buildSequence = function()
 {
+	console.log()
 	if (stimuli.length < numStim) return false;
 	
 	var newSeq = [],
@@ -532,40 +533,42 @@ var continuePreTrialTimeline = function()
 			"biopac",
 			function()
 			{
+				metaObj = {"stimId": NaN, "stimName": "BiopacSuccess", "startStamp": NaN, "stopTime": NaN};
+				sendLogEntry({"eventCode": 600, "meta": metaObj});
 			}).fail(function()
 			{
-			console.log("Error: call to `biopac` failed.");
-				failOurFault();
+				console.log("Error: first call to `biopac` failed.");
+				metaObj = {"stimId": NaN, "stimName": "BiopacFail", "startStamp": NaN, "stopTime": NaN};
+				sendLogEntry({"eventCode": 600, "meta": metaObj});
+				$.get(
+				"biopac",
+				function()
+				{
+					metaObj = {"stimId": NaN, "stimName": "BiopacSuccess", "startStamp": NaN, "stopTime": NaN};
+					sendLogEntry({"eventCode": 600, "meta": metaObj});
+				}).fail(function()
+				{
+					console.log("Error: second call to `biopac` failed.");
+					metaObj = {"stimId": NaN, "stimName": "BiopacFail", "startStamp": NaN, "stopTime": NaN};
+					sendLogEntry({"eventCode": 600, "meta": metaObj});
+					$.get(
+					"biopac",
+					function()
+					{
+						metaObj = {"stimId": NaN, "stimName": "BiopacSuccess", "startStamp": NaN, "stopTime": NaN};
+						sendLogEntry({"eventCode": 600, "meta": metaObj});
+					}).fail(function()
+					{
+						console.log("Error: third call to `biopac` failed. Giving up.");
+						metaObj = {"stimId": NaN, "stimName": "BiopacFail", "startStamp": NaN, "stopTime": NaN};
+						sendLogEntry({"eventCode": 600, "meta": metaObj});
+					});
+				});
 			});
 
 			metaObj = {"stimId": "ScanWait", "stimName": "ScanWait", "startStamp": NaN, "stopTime": NaN};
 			sendLogEntry({"eventCode": 99, "meta": metaObj});
 		},
-		// 	$.get("scanner-ready",
-		// 		function(data)
-		// 		{
-		// 			if (data["scannerReady"] = true)
-		// 			{
-		// 				// Clear the loading screen now and move on
-		// 				if (jsPsych.currentTrial()["isWaitingScreen"] === true)
-		// 				{
-		// 					jsPsych.finishTrial();
-		// 				}
-		// 			}
-		// 			else
-		// 			{
-		// 				console.log("Error: scanner not ready.")
-		// 				console.log(data);
-		// 				failOurFault();
-		// 			}
-		// 		}
-		// 	).fail(function(data)
-		// 	{
-		// 		console.log("Error: request to check scanner readiness failed; the following response was returned:");
-		// 		console.log(data.responseJSON);
-		// 		failOurFault();
-		// 	})
-		// },
 		on_finish: function()
 		{
 			metaObj = {"stimId": "Scan", "stimName": "ScanStart", "startStamp": NaN, "stopTime": NaN};
@@ -619,7 +622,6 @@ var linkSession = function()
 				stimuli = data["validStim"]; // Always sent
 				emotions = data["emotions"]; // Empty when not resuming open session
 				sequence = data["sequence"]; // Empty when not resuming open session
-
 				
 				finishTimeline();
 			}
@@ -832,7 +834,7 @@ var finishTimeline = function()
 	if (!resumedSession)
 	{
 		// Each user will have emotions presented in a random order, but the order will remain consistent for that user
-		emotions = jsPsych.randomization.shuffle(['Angry', 'Amused', 'Hopeful', 'Anxious', 'Sad', 'Bored', 'Uncomfortable', 'Disgusted', 'Moved', 'Relived', 'Proud', 'Surprised', 'Happy', 'Frustrated', 'Afraid', 'Inspired',]);
+		emotions = jsPsych.randomization.shuffle(['Angry', 'Amused', 'Hopeful', 'Anxious', 'Sad', 'Bored', 'Uncomfortable', 'Disgusted', 'Moved', 'Relieved', 'Proud', 'Surprised', 'Happy', 'Frustrated', 'Afraid', 'Inspired',]);
 		
 		// Build the sequence (sets the `sequence` global)
 		var seqSuccess = buildSequence();

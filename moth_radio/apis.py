@@ -289,6 +289,12 @@ def remainingSequenceForSession(session = None):
 # and populated if it was already open.
 @app.route("/link-session", methods = ["POST"])
 def linkSession():
+	
+	if app.config['use_biopac']:
+		   lj = U3()
+		   lj.setFIOState(0,0)
+		   lj.close() # Turn trigger on
+
 	if not checkValidOrigin(request): return badOriginResponse
 	labUserId = request.form.get("labUserId")
 	psiturkUid = request.form.get("psiturkUid")
@@ -442,12 +448,7 @@ def scannerReady():
 		   trigger= ser.read()
 	   else:
 		   time.sleep(10)
-		   trigger = validTrigger	
-
-	if app.config['use_biopac']:
-	   lj = U3()
-	   lj.setFIOState(0,1)
-	   lj.close() # Turn trigger on
+		   trigger = validTrigger
 
 	respDict = {"scannerReady": True}
 	return jsonify(respDict)
