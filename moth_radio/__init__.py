@@ -14,15 +14,15 @@ app.config['num_stim'] = -1
 app.config['use_tag_order'] = 0
 app.config['sample_interval'] = 90
 app.config['sample_time_jitter'] = 0.33
-app.config['tags'] = "yay"
+app.config['tags'] = "scan0"
 app.config['hit_duration_mins'] = 150
 app.config['stim_base'] = "static/stim/"
 # app.config['stim_remote'] = "https://prefix.somecdn.com/" # Remote stim path
-app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://moth_radio:Cosan233@localhost/moth_radio" # DON'T COMMIT PASSWORDS!
+app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://moth_radio:password@localhost/moth_radio" # DON'T COMMIT PASSWORDS!
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = 0
-app.config['scanning'] = False
-app.config['use_biopac'] = False
+app.config['scanning'] = True
+app.config['use_biopac'] = True
 db = SQLAlchemy(app)
 
 if app.config['scanning']:
