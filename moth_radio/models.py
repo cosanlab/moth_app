@@ -25,8 +25,8 @@ class Session(db.Model):
 	startTime = db.Column(db.Integer)
 	stopTime = db.Column(db.Integer)
 	emotions = db.Column(db.String(1024))
-	sequence = db.Column(db.String(4096))
-	exitSurvey = db.Column(db.String(16384))
+	sequence = db.Column(db.String(1024))
+	exitSurvey = db.Column(db.String(1024))
 
 class Rating(db.Model):
 	__tablename__ = 'ratings'
@@ -37,5 +37,13 @@ class Rating(db.Model):
 	pollSec = db.Column(db.Float)
 	sliceStartSec = db.Column(db.Float)
 	reactionTime = db.Column(db.Float)
-	intensities = db.Column(db.String(1024))
-	ratingHistory = db.Column(db.String(16384))
+	intensities = db.Column(db.String(2048))
+	ratingHistory = db.Column(db.String(8192))
+
+class Log(db.Model):
+	__tablename__ = 'logs'
+	id = db.Column(db.Integer, primary_key= True, unique=True)
+	sessionId = db.Column(db.Integer, db.ForeignKey('sessions.id'))
+	timestamp = db.Column(db.Integer)
+	eventCode = db.Column(db.Integer)
+	meta = db.Column(db.String(2048))

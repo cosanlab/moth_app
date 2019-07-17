@@ -66,6 +66,40 @@ var createTimesForDurationAndSampleInterval = function(duration, sampleInterval,
 	return starts;
 };
 
+// Split a video into bins of a given length and sample once from a uniform distribution of times within each bin.
+var createTimesForDurationAndBinLength = function(duration, binLength = 90, binPadding = 5)
+{
+	// Round up because the last bin can be less than the full bin length
+	var numBins = Math.ceil(duration / binLength);
+	// Allow padding on the edge of each bin to prevent stops too close together
+	var possibleOffsets = _.range(binPadding, binLength - binPadding);
+
+	// Loop through all but the last stop (which we treat separately)
+	var starts = [0];
+	for (var i = 0; i < numBins - 1; i ++)
+	{
+		// Pick an offset within this bin, and add to the left edge of the bin to get an actual timestamp
+		var thisOffset = _.sample(possibleOffsets);
+		var thisTimestamp = i * binLength + thisOffset;
+		starts.push(thisTimestamp)
+	}
+
+	// We need at least 4 times the padding to add a last stop, otherwise one or both of the last clips
+	// (the one leading up to the last stop and the one between it and the end) will be less than the padding demands.
+	// So, if less than padding*4 seconds reamin, don't add a last stop and just have the last clip be longer than usual
+	var remainingTime = duration - (i * binLength);
+	if (remainingTime > binPadding * 4)
+	{
+		// If we do have time for a last stop, add it, making sure that the time between it and the
+		// end of the video is at least padding * 2
+		var lastPossibleOffsets = _.range(binPadding, remainingTime - binPadding * 2);
+		var lastTimestamp = i * binLength + _.sample(lastPossibleOffsets);
+		starts.push(lastTimestamp);
+	}
+
+	return starts;
+}
+
 var visualizeTimes = function(width, height, duration)
 {
 	var tests = "";
@@ -191,7 +225,7 @@ var buildSequence = function()
 	for (var i = 0; i < selectedStim.length; i ++)
 	{
 		var stim = selectedStim[i],
-			starts = createTimesForDurationAndSampleInterval(stim.duration, sampleInterval, sampleTimeJitter),
+			starts = createTimesForDurationAndBinLength(stim.duration);
 			stimObj = 
 			{
 				"stimulus": stim.id,
@@ -201,6 +235,7 @@ var buildSequence = function()
 	}
 	
 	sequence = newSeq;
+	if (scanning) console.log(sequence);
 	
 	return true;
 	
@@ -214,10 +249,12 @@ psiturkWorkerId = Turkframe.getWorkerId();
 var timeline = [];
 
 // Welcome message
+welcomeMessage = "<p>Welcome to the study.</p><p>You may reload this window at any point, or bookmark and return to it, and the task will resume approximately where you left off. Feel free to take breaks, provided you finish the task within the time window provided (see the HIT ad for details).</p><p>If you encounter any issues while completing this HIT, please try reloading the page. If the error persists, contact the requesters (<a href='mailto:cosanlab@gmail.com'>cosanlab@gmail.com</a>), and <strong>rest assured that you will be fully compensated for your time</strong>.<p>Thank you in advance for your participation!</p><p>Press any key to begin.</p>";
+if (scanning) welcomeMessage = "<p>Setting up the study...</p><p><p>Press any key to begin.</p>";
 var welcomeBlock =
 {
 	type: "html-keyboard-response",
-	stimulus: "<p>Welcome to the study.</p><p>You may reload this window at any point, or bookmark and return to it, and the task will resume approximately where you left off. Feel free to take breaks, provided you finish the task within the time window provided (see the HIT ad for details).</p><p>If you encounter any issues while completing this HIT, please try reloading the page. If the error persists, contact the requesters (<a href='mailto:cosanlab@gmail.com'>cosanlab@gmail.com</a>), and <strong>rest assured that you will be fully compensated for your time</strong>.<p>Thank you in advance for your participation!</p><p>Press any key to begin.</p>",
+	stimulus: welcomeMessage,
 };
 timeline.push(welcomeBlock);
 
@@ -231,8 +268,8 @@ if (!Turkframe.inTurkframeMode())
 	var accountPrompt =
 	{
 		type: "html-button-response",
-		stimulus: "<p>Would you like to log in to an existing cosanlabradio account or create a new one?</p>",
-		choices: ["Log In", "Create Account"],
+		stimulus: "<p>Is this an existing participant or a new one?</p>",
+		choices: ["Log In", "Register Participant"],
 		on_finish: function(data)
 		{
 			hasAccount = data["button_pressed"] == 0 ? true : false;
@@ -244,10 +281,10 @@ if (!Turkframe.inTurkframeMode())
 	var infoBlock =
 	{
 		type: "survey-text",
-		preamble: "Please enter your information.",
+		preamble: "Please enter user information.",
 		// Have to specify all properties in `questions` because of a bug in the current version of
 		// the survey-text plugin (as of Jan 17, 2018).
-		questions: [{prompt: "Name:", rows: 1, columns: 40, value: "",}, {prompt: "Email:", rows: 1, columns: 40, value: ""}],
+		questions: [{prompt: "ID:", rows: 1, columns: 40, value: "",}, {prompt: "Study:", rows: 1, columns: 40, value: ""}],
 		on_finish: function(data)
 		{
 			answers = JSON.parse(data.responses);
@@ -345,6 +382,48 @@ if (!Turkframe.inTurkframeMode())
 	timeline.push(loginLoop);
 }
 
+var fixationPointBlockForSeconds = function(seconds)
+{
+	return {
+		type: "html-keyboard-response",
+		stimulus: "<h1>+</h1>",
+		choices: [jsPsych.NO_KEYS,],
+		trial_duration: seconds*1000,
+		on_start: function()
+		{
+			sendLogEntry({"eventCode": 200});
+		},
+		on_finish: function()
+		{
+			sendLogEntry({"eventCode": 299});
+		},
+	}
+};
+
+var sendLogEntry = function(entry)
+{
+	$.post(
+		"save-log",
+		{
+			sessionId: sessionId,
+			eventCode: entry["eventCode"],
+			meta: JSON.stringify(entry["meta"]),
+		},
+		function(data)
+		{
+			if (!(data && data["logId"])) // No action required for success.
+			{
+				console.log("Error: no log ID returned from server after request to save log.");
+			}
+		},
+		"json"
+	).fail(function(data)
+	{
+		console.log("Error: request to save log failed; the following response was returned:");
+		console.log(data.responseJSON);
+	});
+}
+
 var continuePreTrialTimeline = function()
 {
 	var timelineToAdd = [];
@@ -420,18 +499,6 @@ var continuePreTrialTimeline = function()
 		timelineToAdd.push(humanTestLoop);
 	}
 	
-	// Instructions message, creating the session when done
-	var instructionsBlock =
-	{
-		type: "html-keyboard-response",
-		stimulus: "<p>You are going to watch a video clip. The clip will pause  " +
-			"and random times and you will be presented with a group of ratings to make.</p>" +
-			"<p>Please rate your emotions at the time of the rating," +
-			"and press the spacebar when you are finished to continue watching the video clip.</p>" +
-			"<p>Press any key to begin.</p>",
-	};
-	timelineToAdd.push(instructionsBlock);
-	
 	// Shown while waiting for the AJAX request to finish. User can't do anything; the callbacks clear this screen when appropriate
 	var loadingBlock =
 	{
@@ -442,6 +509,77 @@ var continuePreTrialTimeline = function()
 		on_start: linkSession,
 	};
 	timelineToAdd.push(loadingBlock);
+
+	// Instructions message, creating the session when done
+	var instructionsMessage = "<p>You are going to watch a series of video clips. The clips will pause \nat random times and you will be presented with a group of ratings to make.</p>\n<p>Please rate your emotions at the time of the rating,\nand spress the spacebar when you are finished to continue watching.</p>\n<p>Press any key to begin.</p>";
+	if (scanning) instructionsMessage = "<p>You are going to watch a series of video clips. The clips will pause \nat random times and you will be presented with a group of ratings to make.</p>\n<p>Please rate your emotions at the time of the rating,\nand right click when you are finished to continue watching.</p>";
+	var instructionsBlock =
+	{
+		type: "html-keyboard-response",
+		stimulus: instructionsMessage,
+	};
+	timelineToAdd.push(instructionsBlock);
+	
+	if (scanning)
+	{
+		var waitScannerBlock =
+		{
+			type: "html-keyboard-response",
+			stimulus: "<p>Waiting for scanner...</p>",
+			choices: ['5'],
+	
+			on_start: function()
+			{
+				$.get(
+				"biopac",
+				function()
+				{
+					metaObj = {"stimId": NaN, "stimName": "BiopacSuccess", "startStamp": NaN, "stopTime": NaN};
+					sendLogEntry({"eventCode": 600, "meta": metaObj});
+				}).fail(function()
+				{
+					console.log("Error: first call to `biopac` failed.");
+					metaObj = {"stimId": NaN, "stimName": "BiopacFail", "startStamp": NaN, "stopTime": NaN};
+					sendLogEntry({"eventCode": 600, "meta": metaObj});
+					$.get(
+					"biopac",
+					function()
+					{
+						metaObj = {"stimId": NaN, "stimName": "BiopacSuccess", "startStamp": NaN, "stopTime": NaN};
+						sendLogEntry({"eventCode": 600, "meta": metaObj});
+					}).fail(function()
+					{
+						console.log("Error: second call to `biopac` failed.");
+						metaObj = {"stimId": NaN, "stimName": "BiopacFail", "startStamp": NaN, "stopTime": NaN};
+						sendLogEntry({"eventCode": 600, "meta": metaObj});
+						$.get(
+						"biopac",
+						function()
+						{
+							metaObj = {"stimId": NaN, "stimName": "BiopacSuccess", "startStamp": NaN, "stopTime": NaN};
+							sendLogEntry({"eventCode": 600, "meta": metaObj});
+						}).fail(function()
+						{
+							console.log("Error: third call to `biopac` failed. Giving up.");
+							metaObj = {"stimId": NaN, "stimName": "BiopacFail", "startStamp": NaN, "stopTime": NaN};
+							sendLogEntry({"eventCode": 600, "meta": metaObj});
+						});
+					});
+				});
+	
+				metaObj = {"stimId": "ScanWait", "stimName": "ScanWait", "startStamp": NaN, "stopTime": NaN};
+				sendLogEntry({"eventCode": 99, "meta": metaObj});
+			},
+			on_finish: function()
+			{
+				metaObj = {"stimId": "Scan", "stimName": "ScanStart", "startStamp": NaN, "stopTime": NaN};
+				sendLogEntry({"eventCode": 100, "meta": metaObj});		
+			},
+		};
+		timelineToAdd.push(waitScannerBlock);
+		
+		timelineToAdd.push(fixationPointBlockForSeconds(10));
+	}
 	
 	jsPsych.addNodeToEndOfTimeline({timeline: timelineToAdd}, new Function); // Apparent bug as of Feb 3, 2018 requires empty callback
 }
@@ -512,14 +650,25 @@ var videoBlockForStimAndTimes = function(stimId, startTime, stopTime)
 	{
 		type: "video",
 		sources: [(stimRemote.length > 0 ? stimRemote : stimBase) + stimWithId(stimId).filename],
-		start: startTime,
+		start: startTime > 5 ? startTime - 5 : 0,
 		stop: stopTime,
 		indicateLoading: true,
 		promptEnableAutoplay: true,
 		width: 850,
 		height: 650,
-		on_start: function() { $(document).on("visibilitychange", visibilityListener); },
-		on_finish: function() { $(document).off("visibilitychange", visibilityListener); },
+		on_start: function() {
+			$(document).on("visibilitychange", visibilityListener);
+			if (scanning)
+			{
+				metaObj = {"stimId": stimId, "stimName": stimWithId(stimId).filename, "startStamp": startTime, "stopTime": NaN};
+				sendLogEntry({"eventCode": 300, "meta": metaObj});
+			}
+		},
+		on_finish: function()
+		{
+			$(document).off("visibilitychange", visibilityListener);
+			if (scanning) sendLogEntry({"eventCode": 399, "meta": metaObj});
+		},
 	};
 	return block;
 };
@@ -531,10 +680,24 @@ var ratingBlockForStimAndTimes = function(stimId, startTime, stopTime)
 		type: "rapid-rate",
 		items: emotions,
 		logCommits: true,
-		topMsg: "Please rate each of the following emotions:",
-		bottomMsg: "Press 'space' when finished.",
+		topMsg: "Please rate how you're feeling on the following emotions:",
+		bottomMsg: scanning ? "Right click when finished." : "Press 'space' when finished.",
+		rightClickSubmit: scanning,
+		defaultNone: true,
+		showShadows: true,
+		darkTheme: scanning,
+		submitTimeout: scanning ? 90 : -1,
+		on_start: function()
+		{
+			if (scanning)
+			{
+				metaObj = {"stimId": stimId, "stimName": stimWithId(stimId).filename, "startStamp": startTime, "stopTime": stopTime};
+				sendLogEntry({"eventCode": 400, "meta": metaObj});
+			}
+		},
 		on_finish: function(ratingData)
 		{
+			if (scanning) sendLogEntry({"eventCode": 499, "meta": metaObj});
 			var payload =
 			{
 				sessionId: sessionId,
@@ -545,6 +708,10 @@ var ratingBlockForStimAndTimes = function(stimId, startTime, stopTime)
 				intensities: JSON.stringify(ratingData["ratings"]),
 				ratingHistory: JSON.stringify(ratingData["commitLog"]),
 			};
+			if (!payload["reactionTime"])
+			{
+				payload["reactionTime"] = -1 // If we don't have a reaction time, send -1 instead of nothing so the server accepts it
+			}
 			$.post(
 				"save-rating",
 				payload,
@@ -566,12 +733,68 @@ var ratingBlockForStimAndTimes = function(stimId, startTime, stopTime)
 	return block;
 };
 
-// Canned between-videos message
-var inBetweenBlock =
+// Build timeline for between videos; either scanner stuff or just a message
+var buildBetweenBlocks = function()
 {
-	type: "html-keyboard-response",
-	stimulus: "<p> Next video will start soon.</p><p>Click the spacebar to begin.</p>",
-};
+	var thisTimeline = [];
+
+	if (scanning)
+	{
+		var crossBlock = fixationPointBlockForSeconds(10);
+		thisTimeline.push(crossBlock);
+		
+		var waitBlock =
+		{
+			type: "html-keyboard-response",
+			stimulus: "Preparing next video...",
+			choices: ['1'],
+		
+			on_start: function()
+			{
+				sendLogEntry({"eventCode": 500});
+			},
+			on_finish: function()
+			{
+				sendLogEntry({"eventCode": 599});
+			},
+		};
+		thisTimeline.push(waitBlock);
+		
+		var loadBlock =
+		{
+			type: "html-keyboard-response",
+			choices: ['5'],
+			// isWaitingScreen: true,
+			stimulus: "Please wait, scanner loading...",
+		
+			on_start: function()
+			{
+				metaObj = {"stimId": "ScanWait", "stimName": "ScanWait", "startStamp": NaN, "stopTime": NaN};
+				sendLogEntry({"eventCode": 99, "meta": metaObj});
+			},
+			on_finish: function()
+			{
+				metaObj = {"stimId": "Scan", "stimName": "ScanStart", "startStamp": NaN, "stopTime": NaN};
+				sendLogEntry({"eventCode": 100, "meta": metaObj});
+			},
+		};
+		
+		thisTimeline.push(loadBlock)
+		thisTimeline.push(crossBlock);
+	}
+	else
+	{
+		// Canned between-videos message
+		var inBetweenBlock =
+		{
+			type: "html-keyboard-response",
+			stimulus: "<p> Next video will start soon.</p><p>Click the spacebar to begin.</p>",
+		};
+		thisTimeline.push(inBetweenBlock);
+	}
+
+	return thisTimeline;
+}
 
 // Finish constructing the timeline by adding the actual videos and ratings
 // Called by linkSession()
@@ -593,7 +816,7 @@ var finishTimeline = function()
 	if (!resumedSession)
 	{
 		// Each user will have emotions presented in a random order, but the order will remain consistent for that user
-		emotions = jsPsych.randomization.shuffle(["Anger", "Pride", "Elation", "Joy", "Satisfaction", "Relief", "Hope", "Boredom", "Surprise", "Sadness", "Fear", "Shame", "Guilt", "Envy", "Disgust", "Contempt", "Anxiety", "Amusement",]);
+		emotions = jsPsych.randomization.shuffle(['Angry', 'Amused', 'Hopeful', 'Anxious', 'Sad', 'Bored', 'Uncomfortable', 'Disgusted', 'Moved', 'Relieved', 'Proud', 'Surprised', 'Happy', 'Frustrated', 'Afraid', 'Inspired',]);
 		
 		// Build the sequence (sets the `sequence` global)
 		var seqSuccess = buildSequence();
@@ -602,6 +825,10 @@ var finishTimeline = function()
 			jsPsych.endExperiment("Sorry, you have already watched all available videos. Thank you for your participation.");
 			return;
 		}
+	}
+	else if (scanning)
+	{
+		sendLogEntry({"eventCode": 110});
 	}
 	
 	var timelineToAdd = [];
@@ -612,6 +839,8 @@ var finishTimeline = function()
 		var stimObj = sequence[i],
 			thisStim = stimObj["stimulus"],
 			starts = stimObj["starts"];
+
+		if (scanning) console.log("STIM: " + stimWithId(thisStim).filename + " #" + thisStim);
 		
 		for (var j = 0; j < starts.length; j ++)
 		{
@@ -622,46 +851,88 @@ var finishTimeline = function()
 			else stop = stimWithId(thisStim).duration;
 			
 			timelineToAdd.push(videoBlockForStimAndTimes(thisStim, thisStart, stop));
-			timelineToAdd.push(ratingBlockForStimAndTimes(thisStim, thisStart, stop));
+			var ratingBlock = ratingBlockForStimAndTimes(thisStim, thisStart, stop);
+			if (j == 0) ratingBlock["showShadows"] = false;
+			timelineToAdd.push(ratingBlock);
 		}
 		
 		// Add an in-between block if there is another video to play
-		if (i < (sequence.length -1 )) timelineToAdd.push(inBetweenBlock);
+		if (i < (sequence.length -1 ))
+		{
+			timelineToAdd = timelineToAdd.concat(buildBetweenBlocks());
+		}
+		// Clean up after the last video if scanning
+		else if (scanning)
+		{
+			var afterLastVideoBlocks = [];
+			afterLastVideoBlocks.push(fixationPointBlockForSeconds(10));
+			var cleanupBlock =
+			{
+				type: "html-keyboard-response",
+				stimulus: "<p></p>",
+				choices: [jsPsych.NO_KEYS,],
+				isWaitingScreen: true,
+				on_start: function()
+				{
+					$.get(
+					"cleanup",
+					function()
+					{
+						// Clear the loading screen now and move on
+						if (jsPsych.currentTrial()["isWaitingScreen"] === true)
+						{
+							jsPsych.finishTrial();
+						}
+					}).fail(function()
+					{
+					console.log("Error: call to `cleanup` failed.");
+						failOurFault();
+					});
+				},
+			};
+			afterLastVideoBlocks.push(cleanupBlock);
+			timelineToAdd = timelineToAdd.concat(afterLastVideoBlocks);
+		}
 	}
 	
-	var surveyBlock =
+	if (!scanning)
 	{
-		type: "survey-text",
-		preamble: "Thank you for finishing this video. Before you go, please answer the following questions.<br /><em>Note: if you have completed this task before, you are not required to answer these questions again.</em>",
-		// Have to specify all properties in `questions` because of a bug in the current version of
-		// the survey-text plugin (as of Jan 17, 2018).
-		questions: [{prompt: "<strong>Your Gender:</strong>", rows: 1, columns: 20, value: "",},
-					{prompt: "<strong>Your Age:</strong>", rows: 1, columns: 20, value: "",},
-					{prompt: "<p><strong>Your Ethnicity</strong><br />(Please copy and paste one item into the following text box)<ul style='display:inline-block;'><li>Hispanic</li><li>Not Hispanic</li><li>Other</li></ul></p>", rows: 1, columns: 20, value: "",},
-					{prompt: "<p><strong>Your Race:</strong><br />(Please copy and paste one item into the following text box)<ul style='display:inline-block;'><li>American Indian / Alaksan Native</li><li>Asian / Asian American</li><li>Black / African American</li><li>Native Hawaiian / Other Pacific Islander</li><li>White</li><li>Multi</li><li>Other</li></ul></p>", rows: 1, columns: 20, value: "",},
-					{prompt: "Feedback on this Task:", rows: 6, columns: 40, value: "",}],
-		on_finish: function(data)
+		var surveyBlock =
 		{
-			var answers = JSON.parse(data.responses),
-				questions = this.questions,
-				surveyData = {};
-			// Necessary b/c the jsPsych plugin returns something like {Q0: "answer", Q1: "answer"} without actual question names
-			Object.keys(answers).forEach(function(key)
+			type: "survey-text",
+			preamble: "Thank you for finishing this video. Before you go, please answer the following questions.<br /><em>Note: if you have completed this task before, you are not required to answer these questions again.</em>",
+			// Have to specify all properties in `questions` because of a bug in the current version of
+			// the survey-text plugin (as of Jan 17, 2018).
+			questions: [{prompt: "<strong>Your Gender:</strong>", rows: 1, columns: 20, value: "",},
+						{prompt: "<strong>Your Age:</strong>", rows: 1, columns: 20, value: "",},
+						{prompt: "<p><strong>Your Ethnicity</strong><br />(Please copy and paste one item into the following text box)<ul style='display:inline-block;'><li>Hispanic</li><li>Not Hispanic</li><li>Other</li></ul></p>", rows: 1, columns: 20, value: "",},
+						{prompt: "<p><strong>Your Race:</strong><br />(Please copy and paste one item into the following text box)<ul style='display:inline-block;'><li>American Indian / Alaksan Native</li><li>Asian / Asian American</li><li>Black / African American</li><li>Native Hawaiian / Other Pacific Islander</li><li>White</li><li>Multi</li><li>Other</li></ul></p>", rows: 1, columns: 20, value: "",},
+						{prompt: "Feedback on this Task:", rows: 6, columns: 40, value: "",}],
+			on_finish: function(data)
 			{
-				var questionNum = parseInt(key.slice(1)), // Strip the leading 'Q' and get the numeric index
-					question = questions[questionNum].prompt,
-					answer = answers[key];
-				surveyData[question] = answer;
-			});
-			exitSurvey = JSON.stringify(surveyData);
-		},
-	};
-	timelineToAdd.push(surveyBlock);
+				var answers = JSON.parse(data.responses),
+					questions = this.questions,
+					surveyData = {};
+				// Necessary b/c the jsPsych plugin returns something like {Q0: "answer", Q1: "answer"} without actual question names
+				Object.keys(answers).forEach(function(key)
+				{
+					var questionNum = parseInt(key.slice(1)), // Strip the leading 'Q' and get the numeric index
+						question = questions[questionNum].prompt,
+						answer = answers[key];
+					surveyData[question] = answer;
+				});
+				exitSurvey = JSON.stringify(surveyData);
+			},
+		};
+		timelineToAdd.push(surveyBlock);
+	}
 	
+	var endMsgText = "Thank you for participating! Please wait a moment and press 'space' if this HIT is not automatically submitted. If you encounter any errors during submission, do not worry; contact <a href='mailto:cosanlab@gmail.com'>cosanlab@gmail.com</a> and you will be fully compensated for completing this HIT.";
+	if (scanning) endMsgText = "<p>This is the end of the run.</p>Please stay still and wait for the experimenter to contact you</p><ul><li><a href='cleanup/'>cleanup</a></li><li><a href = '/stop-session?sessionId=" + sessionId + "'>stop session</a></li></ul>";
 	var endMsg =
 	{
 		type: "html-keyboard-response",
-		stimulus: "Thank you for participating! Please wait a moment and press 'space' if this HIT is not automatically submitted. If you encounter any errors during submission, do not worry; contact <a href='mailto:cosanlab@gmail.com'>cosanlab@gmail.com</a> and you will be fully compensated for completing this HIT.",
+		stimulus: endMsgText,
 		on_start: stopSession,
 		on_finish: function() { Turkframe.messageFinished({sessionId: sessionId}) }, // Extra fallback just in case.
 	 };
@@ -755,6 +1026,12 @@ var failOurFault = function()
 jsPsych.init({
 	timeline: timeline,
 });
+
+if (scanning) {
+	var scannerTheme = document.createElement("style");
+	scannerTheme.innerHTML = "body{color: white; background-color: black;}";
+	document.body.appendChild(scannerTheme);
+}
 
 // If no login work needs to be done, start the rest of the pre-trial timeline
 if (Turkframe.inTurkframeMode())

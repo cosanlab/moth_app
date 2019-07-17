@@ -13,6 +13,9 @@ on your machine at home unless you're in debug mode. Note that this
 from moth_radio import app, db, models
 from flask import request, jsonify
 import json, math, time
+if app.config["use_biopac"]: from psychopy.hardware.labjacks import U3 
+
+scanning = app.config["scanning"]
 
 ###### Infrastructure / Helpers ######
 
@@ -254,11 +257,15 @@ def remainingSequenceForSession(session = None):
 				# If this stim is the last stim to be rated, note that we've reached it
 				# and figure out which stops have yet to be reached.
 				hitLastStim = True
+				query = models.Stimulus.query
+				query = query.filter_by(id = int(thisStim))
+				duration = query.first().duration
 				starts = stimSeq.get("starts", [])
+				starts.append(duration)
 				# The first start left is the moment the last rating was taken
 				firstStartLeftIdx = starts.index(float(lastRating.pollSec))
 				startsLeft = starts[firstStartLeftIdx:]
-				if len(startsLeft) < 1: continue
+				if len(startsLeft) < 2: continue
 				# If at least one start is left for this stim, add it to the remaining sequence
 				remainingSeq.append({"stimulus": thisStim, "starts": startsLeft})
 			else:
@@ -277,6 +284,12 @@ def remainingSequenceForSession(session = None):
 # and populated if it was already open.
 @app.route("/link-session", methods = ["POST"])
 def linkSession():
+	
+	if app.config['use_biopac']:
+		   lj = U3()
+		   lj.setFIOState(0,0)
+		   lj.close() # Turn trigger on
+
 	if not checkValidOrigin(request): return badOriginResponse
 	labUserId = request.form.get("labUserId")
 	psiturkUid = request.form.get("psiturkUid")
@@ -360,7 +373,7 @@ def stopSession(sessionId = None):
 def stopSesh():
 	if not checkValidOrigin(request): return badOriginResponse
 	sessionId = request.form.get("sessionId")
-	exitSurvey = request.form.get("exitSurvey")
+	exitSurvey = None if scanning else request.form.get("exitSurvey")
 	if not sessionId: return badRequestResponse
 	session = stopSession(sessionId)
 	if not session: return failureResponse
@@ -412,3 +425,42 @@ def latestRatingForSession(session = None):
 	rating = models.Rating.query.filter_by(sessionId = session.id).order_by(models.Rating.timestamp.desc()).first()
 	if not rating: return False
 	return rating
+
+if scanning:
+
+	@app.route("/biopac", methods = ["GET"])
+	def biopac():
+		if app.config['use_biopac']:
+			lj = U3()
+			lj.setFIOState(0,1)
+			lj.close() # Turn trigger on
+		return "Biopac"
+	
+	@app.route("/cleanup", methods = ["GET"])
+	def cleanup():
+		if app.config['use_biopac']:
+		   lj = U3()
+		   lj.setFIOState(0,0)
+		   lj.close()
+		return "Cleaned up."
+	
+	def storeLog(log):
+		if not (log.sessionId and log.timestamp and log.eventCode):
+			return False
+		db.session.add(log)
+		db.session.commit()
+		return log
+		
+	@app.route("/save-log", methods = ["POST"])
+	def saveLog():
+		if not checkValidOrigin(request): return badOriginResponse
+		log = models.Log()
+		log.sessionId = request.form.get("sessionId")
+		log.timestamp = math.floor(time.time())
+		log.eventCode = request.form.get("eventCode")
+		log.meta = request.form.get("meta")
+		logObj = storeLog(log)
+		if not logObj: return badRequestResponse # Was probably missing some property
+		respDict = {"logId": logObj.id}
+		response = jsonify(respDict)
+		return response

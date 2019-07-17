@@ -7,18 +7,29 @@ from flask_sqlalchemy import SQLAlchemy
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__)
+
 app.config['wave'] = "SET ME"
 app.config['num_stops'] = 1 # usually ignored
 app.config['num_stim'] = -1 # set me
+app.config['use_tag_order'] = 0
 app.config['sample_interval'] = 60 # set me
 app.config['sample_time_jitter'] = 0.33 # set me
+app.config['tags'] = "scan0"
 app.config['hit_duration_mins'] = 150 # SET ME
 app.config['stim_base'] = "static/stim/"
-app.config['stim_remote'] = "https://something.cloudfront.net/" # set me
-app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://moth_radio:something@localhost/moth_radio" # DON'T COMMIT PASSWORDS!
+# app.config['stim_remote'] = "https://prefix.somecdn.com/" # Remote stim path
+app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://moth_radio:password@localhost/moth_radio" # DON'T COMMIT PASSWORDS!
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = 0
+app.config['scanning'] = True
+app.config['use_biopac'] = True
 db = SQLAlchemy(app)
+
+if app.config['scanning']:
+	import logging
+	import sys
+	logging.basicConfig(filename='error.log',level=logging.DEBUG)
+	logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
 from moth_radio import models, views, apis
 #creating the database- not going to overwrite preexisting 
@@ -26,6 +37,15 @@ db.create_all()
 
 # Force an import of stimuli on startup
 apis.fetchStimuli(forceImport = True)
+
+if app.config['use_biopac']:
+	from psychopy.hardware.labjacks import U3
+	lj = U3()
+	cal_data = lj.getCalibrationData()
+	if lj.getFIOState(0) == 1:
+		lj.setFIOState(0,0) #Make sure we start with the trigger off
+
+	lj.close()
 
 #application instance- web server passes all requests it receives from clients to this object for handling iusing WSGI
 #app instance needs to know what to run for each requested URL so route
