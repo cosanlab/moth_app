@@ -15,6 +15,8 @@ from flask import request, jsonify
 import json, math, time
 if app.config["use_biopac"]: from psychopy.hardware.labjacks import U3 
 
+scanning = app.config["scanning"]
+
 ###### Infrastructure / Helpers ######
 
 # Whitelist for origins to accept.
@@ -296,7 +298,6 @@ def linkSession():
 	if not (labUserId or (psiturkUid and psiturkWorkerId)): return badRequestResponse
 	resuming = True
 	session = retrieveOpenSession(labUserId = labUserId, psiturkWorkerId = psiturkWorkerId)
-	print session
 	# Start a new session if no open one was found
 	if not session:
 		resuming = False
@@ -368,15 +369,15 @@ def stopSession(sessionId = None):
 # Requires a session ID as `sessionId`.
 # Optinally accepts an `exitSurvey` JSON string. 
 # Responds with the session's id.
-@app.route("/stop-session", methods = ["GET"])
+@app.route("/stop-session", methods = ["POST"])
 def stopSesh():
 	if not checkValidOrigin(request): return badOriginResponse
-	sessionId = request.args.get("sessionId")
-	# exitSurvey = request.form.get("exitSurvey")
+	sessionId = request.form.get("sessionId")
+	exitSurvey = None if scanning else request.form.get("exitSurvey")
 	if not sessionId: return badRequestResponse
 	session = stopSession(sessionId)
 	if not session: return failureResponse
-	# session.exitSurvey = exitSurvey
+	session.exitSurvey = exitSurvey
 	respDict = {"sessionId": session.id}
 	response = jsonify(respDict)
 	return response
@@ -425,39 +426,41 @@ def latestRatingForSession(session = None):
 	if not rating: return False
 	return rating
 
-@app.route("/biopac", methods = ["GET"])
-def biopac():
-	if app.config['use_biopac']:
-		lj = U3()
-		lj.setFIOState(0,1)
-		lj.close() # Turn trigger on
-	return "Biopac"
+if scanning:
 
-@app.route("/cleanup", methods = ["GET"])
-def cleanup():
-	if app.config['use_biopac']:
-	   lj = U3()
-	   lj.setFIOState(0,0)
-	   lj.close()
-	return "Cleaned up."
-
-def storeLog(log):
-	if not (log.sessionId and log.timestamp and log.eventCode):
-		return False
-	db.session.add(log)
-	db.session.commit()
-	return log
+	@app.route("/biopac", methods = ["GET"])
+	def biopac():
+		if app.config['use_biopac']:
+			lj = U3()
+			lj.setFIOState(0,1)
+			lj.close() # Turn trigger on
+		return "Biopac"
 	
-@app.route("/save-log", methods = ["POST"])
-def saveLog():
-	if not checkValidOrigin(request): return badOriginResponse
-	log = models.Log()
-	log.sessionId = request.form.get("sessionId")
-	log.timestamp = math.floor(time.time())
-	log.eventCode = request.form.get("eventCode")
-	log.meta = request.form.get("meta")
-	logObj = storeLog(log)
-	if not logObj: return badRequestResponse # Was probably missing some property
-	respDict = {"logId": logObj.id}
-	response = jsonify(respDict)
-	return response
+	@app.route("/cleanup", methods = ["GET"])
+	def cleanup():
+		if app.config['use_biopac']:
+		   lj = U3()
+		   lj.setFIOState(0,0)
+		   lj.close()
+		return "Cleaned up."
+	
+	def storeLog(log):
+		if not (log.sessionId and log.timestamp and log.eventCode):
+			return False
+		db.session.add(log)
+		db.session.commit()
+		return log
+		
+	@app.route("/save-log", methods = ["POST"])
+	def saveLog():
+		if not checkValidOrigin(request): return badOriginResponse
+		log = models.Log()
+		log.sessionId = request.form.get("sessionId")
+		log.timestamp = math.floor(time.time())
+		log.eventCode = request.form.get("eventCode")
+		log.meta = request.form.get("meta")
+		logObj = storeLog(log)
+		if not logObj: return badRequestResponse # Was probably missing some property
+		respDict = {"logId": logObj.id}
+		response = jsonify(respDict)
+		return response

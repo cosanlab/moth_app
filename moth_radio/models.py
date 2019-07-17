@@ -38,7 +38,7 @@ class Rating(db.Model):
 	sliceStartSec = db.Column(db.Float)
 	reactionTime = db.Column(db.Float)
 	intensities = db.Column(db.String(2048))
-	ratingHistory = db.Column(db.String(2048))
+	ratingHistory = db.Column(db.String(8192))
 
 class Log(db.Model):
 	__tablename__ = 'logs'

@@ -4,13 +4,9 @@ from flask import Flask, send_file, make_response, render_template, request
 from flask_script import Manager, Shell
 from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
-import logging
-import sys
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__)
-logging.basicConfig(filename='error.log',level=logging.DEBUG)
-logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
 app.config['wave'] = "1.0"
 app.config['num_stops'] = 1 # usually ignored
@@ -18,16 +14,22 @@ app.config['num_stim'] = -1
 app.config['use_tag_order'] = 0
 app.config['sample_interval'] = 90
 app.config['sample_time_jitter'] = 0.33
-app.config['tags'] = "scan0"
+app.config['tags'] = "yay"
 app.config['hit_duration_mins'] = 150
 app.config['stim_base'] = "static/stim/"
 # app.config['stim_remote'] = "https://prefix.somecdn.com/" # Remote stim path
-app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://moth_radio:yourpassword@localhost/moth_radio" # DON'T COMMIT PASSWORDS!
+app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://moth_radio:Cosan233@localhost/moth_radio" # DON'T COMMIT PASSWORDS!
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = 0
-app.config['scanning'] = True
-app.config['use_biopac'] = True
+app.config['scanning'] = False
+app.config['use_biopac'] = False
 db = SQLAlchemy(app)
+
+if app.config['scanning']:
+	import logging
+	import sys
+	logging.basicConfig(filename='error.log',level=logging.DEBUG)
+	logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
 from moth_radio import models, views, apis
 #creating the database- not going to overwrite preexisting 
