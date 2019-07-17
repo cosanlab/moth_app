@@ -21,8 +21,8 @@ app.config['stim_base'] = "static/stim/"
 app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://moth_radio:password@localhost/moth_radio" # DON'T COMMIT PASSWORDS!
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = 0
-app.config['scanning'] = True
-app.config['use_biopac'] = True
+app.config['scanning'] = False
+app.config['use_biopac'] = False
 db = SQLAlchemy(app)
 
 if app.config['scanning']:
