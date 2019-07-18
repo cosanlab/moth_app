@@ -225,7 +225,7 @@ var buildSequence = function()
 	for (var i = 0; i < selectedStim.length; i ++)
 	{
 		var stim = selectedStim[i],
-			starts = createTimesForDurationAndBinLength(stim.duration);
+			starts = createTimesForDurationAndBinLength(stim.duration, sampleInterval);
 			stimObj = 
 			{
 				"stimulus": stim.id,
