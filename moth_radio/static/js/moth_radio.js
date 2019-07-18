@@ -845,15 +845,18 @@ var finishTimeline = function()
 		for (var j = 0; j < starts.length; j ++)
 		{
 			var thisStart = starts[j],
-				stop;
+					stop;
 			// Stop at the next start time if there is one, or the end of the video if not
 			if (j < (starts.length - 1)) stop = starts[j + 1];
-			else stop = stimWithId(thisStim).duration;
-			
-			timelineToAdd.push(videoBlockForStimAndTimes(thisStim, thisStart, stop));
-			var ratingBlock = ratingBlockForStimAndTimes(thisStim, thisStart, stop);
-			if (j == 0) ratingBlock["showShadows"] = false;
-			timelineToAdd.push(ratingBlock);
+			// Avoid edge case where last stop is end of video
+			else if (starts[j] < stimWithId(thisStim).duration) stop = stimWithId(thisStim).duration;
+			if (stop)
+			{
+				timelineToAdd.push(videoBlockForStimAndTimes(thisStim, thisStart, stop));
+				var ratingBlock = ratingBlockForStimAndTimes(thisStim, thisStart, stop);
+				if (j == 0) ratingBlock["showShadows"] = false;
+				timelineToAdd.push(ratingBlock);
+			}
 		}
 		
 		// Add an in-between block if there is another video to play
