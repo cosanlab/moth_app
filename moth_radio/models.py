@@ -33,7 +33,8 @@ class Rating(db.Model):
 	id = db.Column(db.Integer, primary_key= True, unique=True)
 	sessionId = db.Column(db.Integer, db.ForeignKey('sessions.id'))
 	stimulusId = db.Column(db.Integer, db.ForeignKey('stimuli.id'))
-	timestamp = db.Column(db.Integer)
+	timestamp = db.Column(db.BigInteger)
+	serverTS = db.Column(db.BigInteger)
 	pollSec = db.Column(db.Float)
 	sliceStartSec = db.Column(db.Float)
 	reactionTime = db.Column(db.Float)
@@ -44,6 +45,7 @@ class Log(db.Model):
 	__tablename__ = 'logs'
 	id = db.Column(db.Integer, primary_key= True, unique=True)
 	sessionId = db.Column(db.Integer, db.ForeignKey('sessions.id'))
-	timestamp = db.Column(db.Integer)
+	timestamp = db.Column(db.BigInteger)
+	serverTS = db.Column(db.BigInteger)
 	eventCode = db.Column(db.Integer)
 	meta = db.Column(db.String(2048))

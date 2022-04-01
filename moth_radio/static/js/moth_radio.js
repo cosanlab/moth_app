@@ -12,6 +12,7 @@ var psiturkUid,
 	maxHumanFails = 2,
 	passedHuman,
 	visibilityListener,
+	trialNum,
 	exitSurvey;
 
 // Grab the stimulus with a given id from the jumble of stimuli sent from the server,
@@ -235,7 +236,7 @@ var buildSequence = function()
 	}
 	
 	sequence = newSeq;
-	if (scanning) console.log(sequence);
+	// if (scanning) console.log(sequence);
 	
 	return true;
 	
@@ -402,11 +403,13 @@ var fixationPointBlockForSeconds = function(seconds)
 
 var sendLogEntry = function(entry)
 {
+	TS = new Date();
 	$.post(
 		"save-log",
 		{
 			sessionId: sessionId,
 			eventCode: entry["eventCode"],
+			serverTS: TS.getTime(),
 			meta: JSON.stringify(entry["meta"]),
 		},
 		function(data)
@@ -573,7 +576,19 @@ var continuePreTrialTimeline = function()
 			on_finish: function()
 			{
 				metaObj = {"stimId": "Scan", "stimName": "ScanStart", "startStamp": NaN, "stopTime": NaN};
-				sendLogEntry({"eventCode": 100, "meta": metaObj});		
+				sendLogEntry({"eventCode": 100, "meta": metaObj});	
+
+				$.get(
+				"biopac-run-on",
+				function()
+				{
+					metaObj = {"stimId": NaN, "stimName": "Biopac_run_on", "startStamp": NaN, "stopTime": NaN};
+					sendLogEntry({"eventCode": 610, "meta": metaObj});
+				}).fail(function()
+				{
+					metaObj = {"stimId": NaN, "stimName": "Biopac_run_on_fail", "startStamp": NaN, "stopTime": NaN};
+					sendLogEntry({"eventCode": 611, "meta": metaObj});
+				});	
 			},
 		};
 		timelineToAdd.push(waitScannerBlock);
@@ -625,6 +640,7 @@ var linkSession = function()
 				emotions = data["emotions"]; // Empty when not resuming open session
 				sequence = data["sequence"]; // Empty when not resuming open session
 				finishTimeline();
+				if (scanning) console.log(sequence);
 			}
 			else
 			{
@@ -657,16 +673,24 @@ var videoBlockForStimAndTimes = function(stimId, startTime, stopTime)
 		width: 850,
 		height: 650,
 		on_start: function() {
-			$(document).on("visibilitychange", visibilityListener);
 			if (scanning)
 			{
-				metaObj = {"stimId": stimId, "stimName": stimWithId(stimId).filename, "startStamp": startTime, "stopTime": NaN};
+				trialNum = startTime>5 ? trialNum + 1 : 1,
+				$(document).on("visibilitychange");
+				metaObj = {"stimId": stimId, "stimName": stimWithId(stimId).filename, "trial":trialNum, "startStamp": startTime, "stopTime": stopTime};
 				sendLogEntry({"eventCode": 300, "meta": metaObj});
 			}
+			else
+			{
+				$(document).on("visibilitychange", visibilityListener);
+			}
+				
+
 		},
 		on_finish: function()
 		{
 			$(document).off("visibilitychange", visibilityListener);
+			metaObj = {"stimId": stimId, "stimName": stimWithId(stimId).filename, "trial":trialNum, "startStamp": startTime, "stopTime": stopTime};
 			if (scanning) sendLogEntry({"eventCode": 399, "meta": metaObj});
 		},
 	};
@@ -691,13 +715,15 @@ var ratingBlockForStimAndTimes = function(stimId, startTime, stopTime)
 		{
 			if (scanning)
 			{
-				metaObj = {"stimId": stimId, "stimName": stimWithId(stimId).filename, "startStamp": startTime, "stopTime": stopTime};
+				metaObj = {"stimId": stimId, "stimName": stimWithId(stimId).filename, "trial":trialNum, "startStamp": startTime, "stopTime": stopTime};
 				sendLogEntry({"eventCode": 400, "meta": metaObj});
 			}
 		},
 		on_finish: function(ratingData)
 		{
+			metaObj = {"stimId": stimId, "stimName": stimWithId(stimId).filename, "trial":trialNum, "startStamp": startTime, "stopTime": stopTime};
 			if (scanning) sendLogEntry({"eventCode": 499, "meta": metaObj});
+			TS = new Date();
 			var payload =
 			{
 				sessionId: sessionId,
@@ -705,6 +731,7 @@ var ratingBlockForStimAndTimes = function(stimId, startTime, stopTime)
 				pollSec: stopTime,
 				sliceStartSec: startTime,
 				reactionTime: ratingData["rt"],
+				serverTS: TS.getTime(),
 				intensities: JSON.stringify(ratingData["ratings"]),
 				ratingHistory: JSON.stringify(ratingData["commitLog"]),
 			};
@@ -751,6 +778,18 @@ var buildBetweenBlocks = function()
 		
 			on_start: function()
 			{
+				$.get(
+				"biopac-run-off",
+				function()
+				{
+					metaObj = {"stimId": NaN, "stimName": "Biopac_run_off", "startStamp": NaN, "stopTime": NaN};
+					sendLogEntry({"eventCode": 620, "meta": metaObj});
+				}).fail(function()
+				{
+					metaObj = {"stimId": NaN, "stimName": "Biopac_run_off_fail", "startStamp": NaN, "stopTime": NaN};
+					sendLogEntry({"eventCode": 621, "meta": metaObj});
+				});	
+
 				sendLogEntry({"eventCode": 500});
 			},
 			on_finish: function()
@@ -776,6 +815,18 @@ var buildBetweenBlocks = function()
 			{
 				metaObj = {"stimId": "Scan", "stimName": "ScanStart", "startStamp": NaN, "stopTime": NaN};
 				sendLogEntry({"eventCode": 100, "meta": metaObj});
+
+				$.get(
+					"biopac-run-on",
+					function()
+					{
+						metaObj = {"stimId": NaN, "stimName": "Biopac_run_on", "startStamp": NaN, "stopTime": NaN};
+						sendLogEntry({"eventCode": 610, "meta": metaObj});
+					}).fail(function()
+					{
+						metaObj = {"stimId": NaN, "stimName": "Biopac_run_on_fail", "startStamp": NaN, "stopTime": NaN};
+						sendLogEntry({"eventCode": 611, "meta": metaObj});
+					});	
 			},
 		};
 		

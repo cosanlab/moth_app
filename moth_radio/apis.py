@@ -83,7 +83,7 @@ def fetchStimuli(count = None, modality = None, forceImport = False):
 			db.session.add_all(stimObjs)
 			db.session.commit()
 		except Exception as error:
-			print "Error adding stimuli to database", error
+			print("Error adding stimuli to database", error)
 	
 	query = models.Stimulus.query.order_by(models.Stimulus.id)
 	if modality:
@@ -95,7 +95,7 @@ def fetchStimuli(count = None, modality = None, forceImport = False):
 	results = query.all()
 	return results
 
-# Find the stimuli that a given user has not already 	rated.
+# Find the stimuli that a given user has not already rated.
 # Requires a labUserId or a psiturkWorkerId.
 # Also takes arguments to pass to fetchStimuli().
 # Returns an array of Stimulus objects.
@@ -233,11 +233,11 @@ def retrieveOpenSession(labUserId = None, psiturkWorkerId = None):
 	if not session: return False
 	return session
 
-# Compute the portion of sequence that has yet to be completed on a given open session.
-# Works by checking the most recent rating associated with the session, matching it to a point
-# in the session's sequence, and returning all further points in the sequence.
-# Requires a Session object.
-# Returns a sequence array.
+## Compute the portion of sequence that has yet to be completed on a given open session.
+## Works by checking the most recent rating associated with the session, matching it to a point
+## in the session's sequence, and returning all further points in the sequence.
+## Requires a Session object.
+## Returns a sequence array.
 def remainingSequenceForSession(session = None):
 	if session and session.sequence:
 		# Get the last rating saved from this session
@@ -265,9 +265,15 @@ def remainingSequenceForSession(session = None):
 				# The first start left is the moment the last rating was taken
 				firstStartLeftIdx = starts.index(float(lastRating.pollSec))
 				startsLeft = starts[firstStartLeftIdx:]
+				# If last rating is the final rating, continue to next stimuli (this one is done)
 				if len(startsLeft) < 2: continue
+				if scanning:
+				# New logic - If this stim is not finished, restart the stim
+					remainingSeq.append(stimSeq)
+				else:
+				# Old logic - start from the point following last recorded rating
 				# If at least one start is left for this stim, add it to the remaining sequence
-				remainingSeq.append({"stimulus": thisStim, "starts": startsLeft})
+					remainingSeq.append({"stimulus": thisStim, "starts": startsLeft})
 			else:
 				# If we've alredy hit and dealt with the last stim to be rated, go ahead and add
 				# the following ones in their entirety; they haven't been started yet.
@@ -286,9 +292,11 @@ def remainingSequenceForSession(session = None):
 def linkSession():
 	
 	if app.config['use_biopac']:
-		   lj = U3()
-		   lj.setFIOState(0,0)
-		   lj.close() # Turn trigger on
+		lj = U3()
+		lj.setFIOState(0,0)
+		lj.setFIOState(1,0)
+		lj.setFIOState(2,0)
+		lj.close() # Turn trigger on
 
 	if not checkValidOrigin(request): return badOriginResponse
 	labUserId = request.form.get("labUserId")
@@ -404,7 +412,8 @@ def saveRating():
 	rating = models.Rating()
 	rating.sessionId = request.form.get("sessionId")
 	rating.stimulusId = request.form.get("stimulusId")
-	rating.timestamp = math.floor(time.time())
+	rating.timestamp = int(time.time() * 1000) # math.floor(time.time())
+	rating.serverTS = request.form.get("serverTS")
 	rating.pollSec = request.form.get("pollSec")
 	rating.sliceStartSec = request.form.get("sliceStartSec")
 	rating.reactionTime = request.form.get("reactionTime")
@@ -433,16 +442,34 @@ if scanning:
 		if app.config['use_biopac']:
 			lj = U3()
 			lj.setFIOState(0,1)
-			lj.close() # Turn trigger on
+			lj.setFIOState(1,0)
+			lj.close()
 		return "Biopac"
 	
 	@app.route("/cleanup", methods = ["GET"])
 	def cleanup():
 		if app.config['use_biopac']:
-		   lj = U3()
-		   lj.setFIOState(0,0)
-		   lj.close()
+			lj = U3()
+			lj.setFIOState(0,0)
+			lj.setFIOState(1,0)
+			lj.close()
 		return "Cleaned up."
+
+	@app.route("/biopac-run-on", methods = ["GET"])
+	def biopac_run_on():
+		if app.config['use_biopac']:
+			lj = U3()
+			lj.setFIOState(1,1)
+			lj.close()
+		return "Run on"
+	
+	@app.route("/biopac-run-off", methods = ["GET"])
+	def biopac_run_off():
+		if app.config['use_biopac']:
+			lj = U3()
+			lj.setFIOState(1,0)
+			lj.close()
+		return "Run off"
 	
 	def storeLog(log):
 		if not (log.sessionId and log.timestamp and log.eventCode):
@@ -455,8 +482,9 @@ if scanning:
 	def saveLog():
 		if not checkValidOrigin(request): return badOriginResponse
 		log = models.Log()
-		log.sessionId = request.form.get("sessionId")
-		log.timestamp = math.floor(time.time())
+		log.timestamp = int(time.time() * 1000) #math.floor(time.time())
+		log.sessionId = request.form.get("sessionId")		
+		log.serverTS = request.form.get("serverTS")
 		log.eventCode = request.form.get("eventCode")
 		log.meta = request.form.get("meta")
 		logObj = storeLog(log)
