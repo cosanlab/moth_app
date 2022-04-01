@@ -42,8 +42,13 @@ if app.config['use_biopac']:
 	from psychopy.hardware.labjacks import U3
 	lj = U3()
 	cal_data = lj.getCalibrationData()
+	# mkae sure pins are configured to digital
+	lj.configIO(FIOAnalog=0,EIOAnalog=0)
+	#Make sure we start with the triggers off
 	if lj.getFIOState(0) == 1:
-		lj.setFIOState(0,0) #Make sure we start with the trigger off
+		lj.setFIOState(0,0) 
+	if lj.getFIOState(1) == 1:
+		lj.setFIOState(1,0)
 
 	lj.close()
 
