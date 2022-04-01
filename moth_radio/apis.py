@@ -23,7 +23,7 @@ scanning = app.config["scanning"]
 allowedOrigins = ["http://cosanlabradio.dartmouth.edu/", "https://cosanlabradio.dartmouth.edu/"]
 # Origins added to the whitelist only while debugging.
 if app.debug:
-	allowedOrigins.append("http://localhost:5001/")
+	allowedOrigins.append("http://localhost:5000/")
 	allowedOrigins.append("chrome-extension://cokgbflfommojglbmbpenpphppikmonn/") #'REST Console' Chrome app, useful for debugging
 	
 # A generic response to send when something is wrong with a request.
