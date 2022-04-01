@@ -8,20 +8,20 @@ from flask_sqlalchemy import SQLAlchemy
 basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__)
 
-app.config['wave'] = "1.0"
+app.config['wave'] = #SET ME
 app.config['num_stops'] = 1 # usually ignored
 app.config['num_stim'] = -1 # set me
 app.config['use_tag_order'] = 0
-app.config['sample_interval'] = 90 # set me
+app.config['sample_interval'] = 90 # set me, originally 60
 app.config['sample_time_jitter'] = 0.33 # set me
 app.config['tags'] = "scan0"
 app.config['hit_duration_mins'] = 150 # SET ME
 app.config['stim_base'] = "static/stim/"
 #app.config['stim_remote'] = "https://prefix.somecdn.com/" # Remote stim path
-app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://moth_radio:yourpassword@localhost/moth_radio" # DON'T COMMIT PASSWORDS!
+app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://moth_radio:password@localhost/moth_radio" # DON'T COMMIT PASSWORDS!
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = 0
-app.config['scanning'] = True
+app.config['scanning'] = False
 app.config['use_biopac'] = False
 db = SQLAlchemy(app)
 

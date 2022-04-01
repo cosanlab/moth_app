@@ -409,7 +409,7 @@ var sendLogEntry = function(entry)
 		{
 			sessionId: sessionId,
 			eventCode: entry["eventCode"],
-			serverTS: TS.getTime(),
+			clientTS: TS.getTime(),
 			meta: JSON.stringify(entry["meta"]),
 		},
 		function(data)
@@ -731,7 +731,7 @@ var ratingBlockForStimAndTimes = function(stimId, startTime, stopTime)
 				pollSec: stopTime,
 				sliceStartSec: startTime,
 				reactionTime: ratingData["rt"],
-				serverTS: TS.getTime(),
+				clientTS: TS.getTime(),
 				intensities: JSON.stringify(ratingData["ratings"]),
 				ratingHistory: JSON.stringify(ratingData["commitLog"]),
 			};

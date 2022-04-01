@@ -23,7 +23,7 @@ scanning = app.config["scanning"]
 allowedOrigins = ["http://cosanlabradio.dartmouth.edu/", "https://cosanlabradio.dartmouth.edu/"]
 # Origins added to the whitelist only while debugging.
 if app.debug:
-	allowedOrigins.append("http://localhost:5000/")
+	allowedOrigins.append("http://localhost:5001/")
 	allowedOrigins.append("chrome-extension://cokgbflfommojglbmbpenpphppikmonn/") #'REST Console' Chrome app, useful for debugging
 	
 # A generic response to send when something is wrong with a request.
@@ -233,11 +233,11 @@ def retrieveOpenSession(labUserId = None, psiturkWorkerId = None):
 	if not session: return False
 	return session
 
-## Compute the portion of sequence that has yet to be completed on a given open session.
-## Works by checking the most recent rating associated with the session, matching it to a point
-## in the session's sequence, and returning all further points in the sequence.
-## Requires a Session object.
-## Returns a sequence array.
+# Compute the portion of sequence that has yet to be completed on a given open session.
+# Works by checking the most recent rating associated with the session, matching it to a point
+# in the session's sequence, and returning all further points in the sequence.
+# Requires a Session object.
+# Returns a sequence array.
 def remainingSequenceForSession(session = None):
 	if session and session.sequence:
 		# Get the last rating saved from this session
@@ -413,7 +413,7 @@ def saveRating():
 	rating.sessionId = request.form.get("sessionId")
 	rating.stimulusId = request.form.get("stimulusId")
 	rating.timestamp = int(time.time() * 1000) # math.floor(time.time())
-	rating.serverTS = request.form.get("serverTS")
+	rating.clientTS = request.form.get("clientTS")
 	rating.pollSec = request.form.get("pollSec")
 	rating.sliceStartSec = request.form.get("sliceStartSec")
 	rating.reactionTime = request.form.get("reactionTime")
@@ -484,7 +484,7 @@ if scanning:
 		log = models.Log()
 		log.timestamp = int(time.time() * 1000) #math.floor(time.time())
 		log.sessionId = request.form.get("sessionId")		
-		log.serverTS = request.form.get("serverTS")
+		log.clientTS = request.form.get("clientTS")
 		log.eventCode = request.form.get("eventCode")
 		log.meta = request.form.get("meta")
 		logObj = storeLog(log)
